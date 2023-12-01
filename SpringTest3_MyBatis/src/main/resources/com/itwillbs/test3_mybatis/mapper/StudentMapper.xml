@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+마이바티스에서 실행할 SQL 구문을 갖는 xxxMapper.xml 파일 정의
+=> 실행할 각 구문의 이름을 태그로 제공함(insert, update, delete, select 등)
+   (내부적으로 PreparedStatement 객체를 통해 SQL 구문을 실행함)
+=> 주의! mapper 태그 내의 namespace 속성에 현재 XML 파일과 연결될 자바 인터페이스를 명시해야한다!
+   ex) <mapper namespace="패키지명.인터페이스명">
+   (존재하지 않는 인터페이스(오타 등)라도 오류가 표시되지 않음)
+=> 주의! 각 태그 내의 id 속성에 지정될 이름은 Mapper 인터페이스 내의 메서드명과 일치해야한다!
+ -->
+
+<!-- 실제 구문 실행 시 매퍼 패키지의 인터페이스가 없다면(이름이 틀릴 경우 포함) 오류가 발생한다. -->
+<mapper namespace="com.itwillbs.test3_mybatis.mapper.StudentMapper">
+	<insert id="insertStudent">
+		INSERT INTO student
+		VALUES (
+			null
+			, #{name}
+			, #{email}
+			, #{grade}
+		)
+	</insert>
+</mapper>
