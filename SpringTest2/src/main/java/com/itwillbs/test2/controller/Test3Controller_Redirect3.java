@@ -100,11 +100,7 @@ public class Test3Controller_Redirect3 {
 	//       3번 방법에 비해 이름만으로 명확한 용도를 확인하기 어렵다.
 //	@GetMapping("redirectServlet")
 //	public String redirectServlet(@RequestParam Map<String, String> map) {
-//		// PersonVO 객체 자동 생성 및 데이터 저장까지 자동으로 수행되므로
-//		// 즉시 PersonVO 객체 접근하여 데이터 사용 가능
-//		// => 이 때, 데이터 저장 과정에서 Setter 메서드가 자동으로 호출됨
-//		// => 단, 멤버변수명과 파라미터명이 일치하지 않으면 데이터 저장 불가!
-//		//    이 경우 타입별 초기값 출력
+
 //		System.out.println("이름(map) : " + map.get("name") + ", 나이(map) : " + map.get("age"));
 //		System.out.println("성별(char) : " + map.get("gender"));
 //		
