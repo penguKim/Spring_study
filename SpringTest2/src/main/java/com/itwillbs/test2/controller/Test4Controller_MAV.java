@@ -44,7 +44,7 @@ public class Test4Controller_MAV {
 //		// => 객체 생성 : new ModelAndView("이동할뷰페이지명", "저장데이터속성명", 저장데이터);
 //		// => 포워딩 방식은 디스패치 방식이며, 경로 지정은 return 문 뒤에 경로 기술 방법과 동일
 //		// map 객체로 전달시 파라미터 두개의 생성자도 가능
-//		// request 포워딩은 String 데이터만 전달 가능하기에 디스패치 방식으로 포워딩
+//		// redirect 포워딩은 String 데이터만 전달 가능하기에 디스패치 방식으로 포워딩
 //		ModelAndView mav = new ModelAndView("test2/model_and_view", "map", map);
 //		
 //		return mav;
