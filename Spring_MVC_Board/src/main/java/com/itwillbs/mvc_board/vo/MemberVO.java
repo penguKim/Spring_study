@@ -30,7 +30,7 @@ import lombok.ToString;
 이메일인증여부(mail_auth_status) - 문자(1자), NN => 이메일 인증 기능 추가를 위한 인증여부(Y, N)
 -----------------------------------------
 CREATE DATABASE spring_mvc_board5;
-USE mvc_board5;
+USE spring_mvc_board5;
 CREATE TABLE member (
 	idx INT PRIMARY KEY AUTO_INCREMENT,
  	name VARCHAR(10) NOT NULL,

@@ -17,7 +17,7 @@
 	</header>
 	<article>
 		<h1>회원탈퇴</h1>
-		<form action="MemberWithdrawPro.me" method="post">
+		<form action="MemberWithdrawPro" method="post">
 			<table>
 				<tr>
 					<td>

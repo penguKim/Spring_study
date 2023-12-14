@@ -36,7 +36,7 @@
 			</tr>
 			<tr>
 				<th>주소</th>
-				<td>${member.address }</td>
+				<td>${member.post_code } / ${member.address1 } / ${member.address2 }</td>
 			</tr>
 			<tr>
 				<th>E-Mail</th>
@@ -60,8 +60,8 @@
 			</tr>
 			<tr>
 				<td colspan="2" align="center">
-					<input type="button" value="정보수정" onclick="location.href='MemberModifyForm.me'">
-					<input type="button" value="회원탈퇴" onclick="location.href='MemberWithdrawForm.me'">
+					<input type="button" value="정보수정" onclick="location.href='MemberModifyForm'">
+					<input type="button" value="회원탈퇴" onclick="location.href='MemberWithdrawForm'">
 					<input type="button" value="돌아가기">
 				</td>
 			</tr>

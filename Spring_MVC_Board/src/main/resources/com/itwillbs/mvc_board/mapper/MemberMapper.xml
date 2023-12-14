@@ -47,6 +47,15 @@
 		FROM member
 		WHERE id = #{id}
 	</select>
+	
+	
+	<update id="updateMember">
+		UPDATE member
+		SET member_status = 3
+		WHERE id = #{id}
+		AND passwd = #{passwd}
+	</update>
+	
 </mapper>
 
 

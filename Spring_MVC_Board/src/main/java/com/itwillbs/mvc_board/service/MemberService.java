@@ -25,5 +25,10 @@ public class MemberService {
 		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO
 		return mapper.selectMember(member);
 	}
+	
+	// 회원 정보 수정 작업(탈퇴 처리 포함) 요청
+	public int modifyMember(MemberVO member) {
+		return mapper.updateMember(member);
+	}
 
 }

@@ -117,7 +117,6 @@ public class MemberController {
 		} else {
 			// 세션 객체에 로그인 성공한 아이디를 "sId" 속성으로 추가
 			session.setAttribute("sId", member.getId());
-			
 			// 메인페이지로 리다이렉트
 			return "redirect:/";
 		}
@@ -132,19 +131,109 @@ public class MemberController {
 		return "redirect:/";
 	}
 	
+	// 회원 정보 조회
+	@GetMapping("MemberInfo")
+	public String info(MemberVO member, HttpSession session, Model model) {
+		String id = (String)session.getAttribute("sId");
+		
+		if(id == null) {
+			model.addAttribute("msg", "잘못된 접근입니다.");
+			return "fail_back";
+		}
+		member.setId(id);
+		
+		MemberVO dbMember = memberService.getMember(member);
+//		System.out.println(member);
+		
+		model.addAttribute("member", dbMember);
+		
+		return "member/member_info";
+	}
 	
+	// 회원 정보 수정 폼
+	@GetMapping("MemberModifyForm")
+	public String modifyForm(MemberVO member, HttpSession session, Model model) {
+		String id = (String)session.getAttribute("sId");
+		
+		if(id == null) {
+			model.addAttribute("msg", "잘못된 접근입니다.");
+			return "fail_back";
+		}
+		member.setId(id);
+		
+		MemberVO dbMember = memberService.getMember(member);
+//		System.out.println(member);
+		
+		model.addAttribute("member", dbMember);
+		
+		return "member/member_modify_form";
+	}
 	
+	// 회원 정보 수정 작업
+	@PostMapping("MemberModifyPro")
+	public String modifyPro(MemberVO member, HttpSession session, Model model) {
+		
+		String id = (String)session.getAttribute("sId");
+		
+		if(id == null) {
+			model.addAttribute("msg", "잘못된 접근입니다.");
+			return "fail_back";
+		}
+		
+//		int updateCount = 0;
+//		
+//		if(member.getPasswd() == null) {
+//			updateCount = memberService.modifyMember(member);
+//		} else {
+//			
+//		}
+		
+		return "redirect:/MemberInfo";
+	}
 	
+	// 회원 삭제 폼
+	@GetMapping("MemberWithdrawForm")
+	public String withdrawForm(HttpSession session, Model model) {
+		
+		String id = (String)session.getAttribute("sId");
+		
+		if(id == null) {
+			model.addAttribute("msg", "잘못된 접근입니다.");
+			return "fail_back";
+		}
+		
+		return "member/member_withdraw_form";
+	}
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	// 회원 삭제 작업
+	@PostMapping("MemberWithdrawPro")
+	public String withdrawPro(MemberVO member, HttpSession session, Model model) {
+		String id = (String)session.getAttribute("sId");
+		
+		if(id == null) {
+			model.addAttribute("msg", "잘못된 접근입니다.");
+			return "fail_back";
+		}
+		member.setId(id);
+		
+		MemberVO dbMember = memberService.getMember(member);
+		
+		BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+		boolean isCorrect = passwordEncoder.matches(member.getPasswd(), dbMember.getPasswd());
+		if(isCorrect) {
+			
+			int updateCount = memberService.modifyMember(dbMember);
+			System.out.println(updateCount);
+			if(updateCount > 0) {
+				session.invalidate();
+			}
+		}
+		
+		
+		
+		
+		return "redirect:/";
+	}
 	
 	
 	

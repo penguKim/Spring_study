@@ -13,4 +13,6 @@ public interface MemberMapper {
 	// 회원 상세정보 조회
 	MemberVO selectMember(MemberVO member);
 
+	int updateMember(MemberVO member);
+
 }
