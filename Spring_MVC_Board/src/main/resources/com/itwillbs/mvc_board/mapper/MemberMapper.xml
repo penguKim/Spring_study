@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 실제 구문 실행 시 매퍼 패키지의 인터페이스가 없다면(이름이 틀릴 경우 포함) 오류가 발생한다. -->
+<!--  매핑에 사용될 MemberMapper 인터페이스를 namespace 속성에 지정 필수!  -->
+<mapper namespace="com.itwillbs.mvc_board.mapper.MemberMapper">
+	
+	<!-- 
+	[ 회원가입 - INSERT ]
+	- 회원번호(idx) 컬럼은 자동 증가 컬럼이므로 null 값 전달
+	- 가입일(reg_date) 컬럼은 시스템의 현재 날짜 및 시각 활용을 위해 now() 함수 호출
+	- 회원 상태(member_status)는 기본값으로 1 전달
+	- 이메일 인증 상태(mail_auth_status)는 기본값으로 'N' 전달
+	- 주민번호(jumin) 컬럼 데이터는 jumin1, jumin2 파라미터값을 문자열 결합을 통해 전달 => CONCAT() 함수 활용
+	- 이메일(email) 컬럼 데이터는 email1, email2 파라미터값을 문자열 결합을 통해 전달 => CONCAT() 함수 활용
+	-->
+	<insert id="insertMember">
+		INSERT INTO member
+		VALUES(
+			null -- 번호(idx) 자동증가
+			, #{name}
+			, #{id}
+			, #{passwd}
+<!-- 			, #{jumin} -->
+			, CONCAT(#{jumin1}, '-', #{jumin2}) -- jumin1, jumin2 문자열 결합
+			, #{post_code}
+			, #{address1}
+			, #{address2}
+<!-- 			, #{email} -->
+			, CONCAT(#{email1}, '@', #{email2}) -- email1, email2 문자열 결합
+			, #{job}
+			, #{gender}
+			, #{hobby}
+			, #{motivation}
+			, now()
+			, 1
+			, 'N'
+		)
+	</insert>
+	
+	<!-- 회원 상세정보 조회 - SELECT -->
+	<!-- member 테이블에 해당하는 레코드 조회(id 일치) -->
+	<select id="selectMember" resultType="com.itwillbs.mvc_board.vo.MemberVO">
+		SELECT *
+		FROM member
+		WHERE id = #{id}
+	</select>
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
