@@ -7,45 +7,134 @@
 <title>Insert title here</title>
 <!-- 외부 CSS 파일(css/default.css) 연결하기 -->
 <link href="${pageContext.request.contextPath }/resources/css/default.css" rel="stylesheet" type="text/css">
+<style type="text/css">
+	#checkIdResult, #checkPasswdResult, #checkPasswd2Result {
+		font-size: 12px;
+	}
+</style>
 <!-- 다음 주소검색 API 사용을 위한 라이브러리 추가 -->
+<script src="${pageContext.request.contextPath }/resources/js/jquery-3.7.1.js"></script>
 <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script type="text/javascript">
-	window.onload = function() {
+	$(function() {
+		
+		let isDuplicateId = false; // 아이디 중복 여부를 저장할 변수
 		let isSamePasswd = false; // 패스워드 일치 여부 저장할 변수
 		
-		// 1. ID 중복확인 버튼 클릭 시 새 창(check_id.html) 띄우기
-		// 2. 아이디 입력란에서 커서가 빠져나갈 때 아이디 길이 체크 및 ID 중복체크 확인하기 => blur
-		document.joinForm.id.onblur = function() {
-			let id = document.joinForm.id.value; // 입력받은 아이디값 저장
+		// 1. 아이디 입력란에서 커서가 빠져나갈 때 아이디 길이 체크 및 ID 중복체크 확인하기 => blur
+		$("#id").blur(function() {
+			let id = $("#id").val(); // 아이디 입력값 가져오기
+// 			if(id == "") {
+// 				$("#checkIdResult").html("아이디 입력 필수!");
+// 				$("#checkIdResult").css("color", "red");
+				
+// 			}
+			// ""도 아래의 정규표현식 검증에서 false로 리턴된다.
 			
-			// 입력된 ID 텍스트의 길이가 4 ~ 8글자 사이일 경우 
-			// 우측 빈공간(span 태그 영역)에 "사용 가능" 초록색으로 표시
-		    // 아니면, "4~8글자만 사용 가능합니다" 빨간색으로 표시
-		    if(id.length >= 4 && id.length <= 8) {
-		     	document.querySelector("#checkIdResult").innerText = "사용 가능";
-		     	document.querySelector("#checkIdResult").style.color = "green";
-		    } else {
-		     	document.querySelector("#checkIdResult").innerText = "4~8글자만 사용 가능합니다";
-		     	document.querySelector("#checkIdResult").style.color = "red";
-		    }
-		};
+			// 아이디 입력값 검증을 위한 정규표현식 활용
+			// 변수명 = /정규표현식/;로 정의하며 객체로 관리된다.
+			// => 영문자, 숫자, 특수문자(_) 조합 4 ~ 16 자리(A-Za-z0-9_ 대신 \w 사용하여 대체 가능하다.)
+			// => 단, 첫글자에 영문자 또는 숫자만 허용하고 _ 사용불가("_admin" 사용 불가 아이디)
+// 			let regex = /^[A-Za-z0-9_]{8,16}$/; // 공백 사용 금지
+			let regex = /^[A-Za-z0-9][\w]{3,15}$/; // 첫자리는 따로 검사 후 뒷자리는 모든 문자열 검사
+			// 정규표현식 객체의 exec() 메서드를 호출하여 검증할 문자열 전달 => true/false 리턴
+			if(!regex.exec(id)) { // 입력값 검증 실패 시
+				console.log(regex.exec(id))
+				$("#checkIdResult").html("영문자, 숫자, _조합 4 ~ 16자리 필수(첫글자 _ 사용 불가)!");
+				$("#checkIdResult").css("color", "red");
+			} else { // 입력값 검증 성공 시
+				// 아이디 중복 검사를 위한 AJAX 활용
+				// 요청 주소 : "MemberCheckDupId", 파라미터 : 아이디
+				$.ajax({
+					url: "MemberCheckDupId",
+					data: {
+						id: id
+					},
+					dataType:"json", // 응답데이터를 JSON 객체 형식으로 전달받을 경우 지정
+					success: function(checkDuplicateResult) {
+// 						console.log("ID 중복 확인 결과 :" + checkDuplicateResult + ", 데이터타입 : " + typeof(checkDuplicateResult));	
+						// 응답데이터 형식을 JSON 타입으로 지정했을 때
+						// 단순 1개 데이터를 그대로 리턴받았을 경우 해당 데이터타입을 인식함
+						// ex) "true"/"false" 리턴 시 boolean 타입으로 인식됨
+						if(checkDuplicateResult) { // 중복
+							$("#checkIdResult").html("이미 사용중인 아이디");
+							$("#checkIdResult").css("color", "red");
+							isDuplicateId = true;
+						} else { // 사용 가능
+							$("#checkIdResult").html("올바른 아이디");
+							$("#checkIdResult").css("color", "green");
+							isDuplicateId = false;
+						}
+						
+					}
+				});
+				
+			}
+			
+		});
 		
-		// 3. 비밀번호 입력란에 키를 누를때마다 비밀번호 길이 체크하기 = keyup
-		document.joinForm.passwd.onkeyup = function() {
-			let passwd = document.joinForm.passwd.value;
-			
-			// 비밀번호 길이 체크를 통해 8 ~ 16글자 사이이면 "사용 가능한 패스워드"(파란색) 표시,
-			// 아니면, "사용 불가능한 패스워드"(빨간색) 표시
-		    if(passwd.length >= 8 && passwd.length <= 16) {
-		     	document.querySelector("#checkPasswdResult").innerText = "사용 가능한 패스워드";
-		     	document.querySelector("#checkPasswdResult").style.color = "blue";
-		    } else {
-		     	document.querySelector("#checkPasswdResult").innerText = "사용 불가능한 패스워드";
-		     	document.querySelector("#checkPasswdResult").style.color = "red";
-		    }
-			
-		};
 		
+		// 2. 비밀번호 입력란에서 커서 빠져나갈 때 비밀번호 입력값 검증
+		$("#passwd").blur(function() {
+			let passwd = $("#passwd").val();
+	
+			// 입력값 검증(복잡도 검사 포함)
+			// 오류메세지와 컬러를 변수로 지정하며 중복 작업 최소화
+			let msg= "";
+			let color= "";
+			// 1) 비밀번호 길이 검증 : 영문자(대소문자), 숫자, 특수문자(!@#$%) 조합 8 ~ 16자리
+			let lengthRegex = /^[A-Za-z0-9!@#$%]{8,16}$/;
+			
+			if(!lengthRegex.exec(passwd)) { // 패스워드 길이체크 위반
+				msg = "영문자(대소문자), 숫자, 특수문자(!@#$%) 조합 8 ~ 16자리!";
+				color = "red"
+			} else {
+				// 2) 패스워드 복잡도 검사(영문 대소문자, 숫자, 특수문자 중 최소 2가지 조합)
+				//    단, 부븐 검사를 수행하므로 시작(^) 과 끝($) 표기하지 않는다.
+				// 2-1) 영문자 대문자 검사 규칙
+				let engUpperRegex = /[A-Z]/;
+				// 2-2) 영문자 소문자 검사 규칙
+				let engLowerRegex = /[a-z]/;
+				// 2-3 숫자 검사 규칙
+				let numRegex = /[\d]/; // [0-9] 와 동일
+				// 2-4 특수문자 (!@#$%) 검사 규칙
+				let specRegex = /[!@#$%]/;
+				
+				// 부분 검사를 통해 일치하는 항목 카운팅 변수 선언(일치할 경우 1 증가)
+				let count = 0;
+				// 간단한 if문은 {} 생략 가능
+				if(engUpperRegex.exec(passwd)) count++; // 대문자 포함 시
+				if(engLowerRegex.exec(passwd)) count++; // 소문자 포함 시
+				if(numRegex.exec(passwd)) count++; // 숫자 포함 시
+				if(specRegex.exec(passwd)) count++; // 특수문자 포함 시
+				
+				// 복잡도 검사 결과 판별
+				// 4점 : 안전(초록), 3점 : 보통(노랑), 2점 : 위험(주황), 
+				// 1점 이하 : 사용 불가능한 패스워드(빨강)
+				switch(count) {
+					case 4 : 
+						msg = "안전";
+						color = "green";
+						break;
+					case 3 : 
+						msg = "보통";
+						color = "yellow";
+						break;
+					case 2 : 
+						msg = "위험";
+						color = "orange";
+						break;
+					case 1 :  // 1점과 0점은 공통 처리를 위해 break 문 없이
+					case 0 :  // 중복 항목들 중 마지막 case 문에서 중복 처리 기술(default 포함 가능)
+						msg = "사용 불가능한 패스워드";
+						color = "red";
+				}
+				
+			}
+				$("#checkPasswdResult").html(msg);
+				$("#checkPasswdResult").css("color", color);
+			
+		});
 		// 4. 비밀번호확인 입력란에 키를 누를때마다 비밀번호와 같은지 체크하기
 		document.joinForm.passwd2.onkeyup = function() {
 			let passwd = document.joinForm.passwd.value;
@@ -109,7 +198,21 @@
 		};
 		
 		// 8. 가입(submit) 클릭 시 이벤트 처리를 통해
-	    // 비밀번호 2개가 일치하는지 체크하고 모든 항목이 입력되었을 경우에만 submit 동작이 수행되도록 처리
+	    // 아이디 중복 검사 통과(false)와 비밀번호 2개가 일치(true)하는지 체크하고 
+	    // 모든 항목이 통과했을 경우에만 submit 동작이 수행되도록 처리
+	    $("form").submit(function() {
+			if(isDuplicateId) {
+				alert("아이디를 확인해 주세요!");
+				$("#id").focus();
+				return false; // submit 동작 취소
+			} else if(!isSamePasswd) {
+				alert("아이디를 확인해 주세요!");
+				$("#passwd").focus();
+				return false; // submit 동작 취소
+				
+			}
+		});
+	    
 		document.joinForm.onsubmit = function() {
 			if(!isSamePasswd) { // 일치 여부 저장 변수 isSamePasswd 값 활용
 				alert("패스워드 불일치!");
@@ -155,7 +258,7 @@
 		    }).open();
 		};
 		
-	}; // window.onload 이벤트 끝
+	}); // document.ready 이벤트 끝
 </script>
 </head>
 <body>
@@ -176,22 +279,22 @@
 				<tr>
 					<th>아이디</th>
 					<td>
-						<input type="text" name="id" placeholder="8 ~ 16글자" required>
-						<span id="checkIdResult"></span>
+						<input type="text" name="id" id="id" placeholder="8 ~ 16글자" required>
+						<div id="checkIdResult"></div>
 					</td>
 				</tr>
 				<tr>
 					<th>비밀번호</th>
 					<td>
-						<input type="password" name="passwd" placeholder="8 ~ 16글자" required>
-						<span id="checkPasswdResult"></span>
+						<input type="password" name="passwd" id="passwd" placeholder="8 ~ 16글자" required>
+						<div id="checkPasswdResult"></div>
 					</td>
 				</tr>
 				<tr>
 					<th>비밀번호확인</th>
 					<td>
-						<input type="password" name="passwd2" required>
-						<span id="checkPasswd2Result"></span>
+						<input type="password" name="passwd2" id="passwd2" required>
+						<div id="checkPasswd2Result"></div>
 					</td>
 				</tr>
 				<tr>

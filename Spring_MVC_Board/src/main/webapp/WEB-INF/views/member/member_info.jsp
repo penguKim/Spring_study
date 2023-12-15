@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -36,7 +37,7 @@
 			</tr>
 			<tr>
 				<th>주소</th>
-				<td>${member.post_code } / ${member.address1 } / ${member.address2 }</td>
+				<td>${member.post_code }/${member.address1 }/${member.address2 }</td>
 			</tr>
 			<tr>
 				<th>E-Mail</th>
@@ -52,7 +53,10 @@
 			</tr>
 			<tr>
 				<th>취미</th>
-				<td>${member.hobby }</td>
+<%-- 				<td>${member.hobby }</td> --%>
+				<%-- JSTL functions 라이브러리의 replace() 함수를 활용하여 , 를 공백으로 치환 --%>
+				<%-- ${fn:replace(원본문자열, "대상문자열", "치환할문자열")} --%>
+				<td>${fn:replace(member.hobby, ",", " ") }</td>
 			</tr>
 			<tr>
 				<th>가입동기</th>

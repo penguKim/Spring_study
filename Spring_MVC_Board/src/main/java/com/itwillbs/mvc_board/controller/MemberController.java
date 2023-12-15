@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.itwillbs.mvc_board.service.MemberService;
 import com.itwillbs.mvc_board.vo.MemberVO;
@@ -72,6 +73,29 @@ public class MemberController {
 		}
 	}
 	
+	// "MemberCheckDupId" 요청에 대한 아이디 중복 검사 비즈니스 로직 처리
+	// 응답데이터를 디스패치 또는 리다이렉트 용도가 아닌 응답 데이터 body 로 그대로 활용하려면
+	// @ResponseBody 어노테이션을 적용해야한다! => 응답 데이터를 직접 전송하도록 지정한다.
+	// => 이 어노테이션은 AJAX 와 상관없이 적용 가능하지만 AJAX 일 때는 대부분 사용한다.
+	@ResponseBody 
+	@GetMapping("MemberCheckDupId")
+	public String checkDupId(MemberVO member) {
+		System.out.println(member.getId());
+		
+		// MemberService - getMember() 메서드 호출하여 아이디 조회(기존 메서드 재사용)
+		// (MemberService - getMemberId() 메서드 호출하여 아이디 조회 메서드 정의 가능)
+		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
+		MemberVO dbMember = memberService.getMember(member);
+		
+		// 조회 결과 판별
+		// => MemberVO 객체가 존재할 경우 아이디 중복, 아니면 사용 가능한 아이디
+		if(dbMember == null) { // 사용 가능한 아이디
+			return "false"; // 중복이 아니라는 의미로 "false" 값 전달
+		} else { // 아이디 중복
+			return "true"; // 중복이라는 의미로 "true" 값 전달
+		}
+	}
+	
 	// ================================================================================
 	// [ 로그인 ]
 	// "MemberJoinSuccess" 요청에 대해 "member/member_join_success" 페이지 포워딩(GET)
@@ -131,22 +155,29 @@ public class MemberController {
 		return "redirect:/";
 	}
 	
+	// ===============================================================
+	// [ 회원 상세정보 조회 ]
+	// "MemberInfo" 서블릿 요청 시 회원 상세정보 조회 비즈니스 로직 처리
 	// 회원 정보 조회
 	@GetMapping("MemberInfo")
 	public String info(MemberVO member, HttpSession session, Model model) {
+		// 세션 아이디가 없을 경우 "fail_back" 페이지를 통해 "잘못된 접근입니다" 출력 처리
 		String id = (String)session.getAttribute("sId");
-		
 		if(id == null) {
-			model.addAttribute("msg", "잘못된 접근입니다.");
+			model.addAttribute("msg", "잘못된 접근입니다!");
 			return "fail_back";
 		}
+		
 		member.setId(id);
 		
+		// MemberService - getMember() 메서드 호출하여 회원 상세정보 조회 요청
+		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
 		MemberVO dbMember = memberService.getMember(member);
 //		System.out.println(member);
 		
+		// 조회 결과 Model 객체에 저장
 		model.addAttribute("member", dbMember);
-		
+		// 회원 상세정보 조회 페이지 포워딩
 		return "member/member_info";
 	}
 	
