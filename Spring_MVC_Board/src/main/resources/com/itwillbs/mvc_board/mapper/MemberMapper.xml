@@ -42,19 +42,66 @@
 	
 	<!-- 회원 상세정보 조회 - SELECT -->
 	<!-- member 테이블에 해당하는 레코드 조회(id 일치) -->
-	<select id="selectMember" resultType="com.itwillbs.mvc_board.vo.MemberVO">
+<!-- 	<select id="selectMember" resultType="com.itwillbs.mvc_board.vo.MemberVO"> -->
+	<!-- mybatis-config.xml 파일의 TypeAlias 설정을 통해 타입 축약 시 해당 이름 그대로 사용 -->
+	<select id="selectMember" resultType="member">
 		SELECT *
 		FROM member
 		WHERE id = #{id}
 	</select>
 	
-	
+	<!-- 회원정보 수정 - UPDATE -->
+	<!-- @Param 어노테이션을 통해 파라미터 이름을 지정했으므로 #{파라미터명.xxx} 형식으로 객체 접근 -->
+	<!-- 단, 새 패스워드(newPasswd)는 null 또는 널스트링이 아닐 경우에만 변경 -->
 	<update id="updateMember">
 		UPDATE member
-		SET member_status = 3
-		WHERE id = #{id}
-		AND passwd = #{passwd}
+		SET 
+			name = #{member.name}
+			<!-- 새 패스워드(newPasswd) 존재 여부에 따라 변경 여부 결정 -->
+			<!-- 주의! 비교에 사용될 파라미터는 #{} 제외하고 표현 -->
+			<if test="newPasswd != null and !newPasswd.equals('')">
+				, passwd = #{newPasswd} -- 새 패스워드가 존재할 경우 기존 패스워드 변경
+			</if>
+			, post_code = #{member.post_code}
+			, address1 = #{member.address1}
+			, address2 = #{member.address2}
+			, email = CONCAT(#{member.email1}, '@', #{member.email2})
+			, job = #{member.job}
+			, gender = #{member.gender}
+			, hobby = #{member.hobby}
+			, motivation = #{member.motivation}
+		WHERE 
+			id = #{member.id}
 	</update>
+	
+	<!-- 회원 탈퇴 -UPDATE -->
+	<!-- member 테이블의 member_status 컬럼값을 3(탈퇴) 으로 변경 -->
+	<!-- 이 떄, 아이디를 제외한 나머지 모든 정보를 초기화(널스트링) 필요 -->
+	<update id="updateWithdrawMember">
+		UPDATE member
+		SET 		
+		member_status = 3
+		, name = ''
+		, passwd = ''
+		, jumin = ''
+		, post_code = ''
+		, address1 = ''
+		, address2 = ''
+		, email = ''
+		, job = ''
+		, gender = ''
+		, hobby = ''
+		, motivation = ''
+		WHERE id = #{id}
+	</update>
+	
+	<!-- =========== 관리자 =========== -->
+	<!-- mybatis-config.xml 파일의 TypeAlias 설정을 통해 타입 축약 시 해당 이름 그대로 사용 -->
+	<select id="selectMemberList" resultType="member">
+		SELECT *
+		FROM member
+		WHERE id != 'admin' -- 관리자 계정을 제외한 나머지 조회
+	</select>
 	
 </mapper>
 

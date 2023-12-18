@@ -1,5 +1,7 @@
 package com.itwillbs.mvc_board.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,9 +28,22 @@ public class MemberService {
 		return mapper.selectMember(member);
 	}
 	
-	// 회원 정보 수정 작업(탈퇴 처리 포함) 요청
-	public int modifyMember(MemberVO member) {
-		return mapper.updateMember(member);
+	// 회원 정보 수정
+	public int modifyMember( MemberVO member, String newPasswd) {
+		return mapper.updateMember(member, newPasswd);
 	}
+	
+	// 회원 탈퇴 요청
+	public int withdrawMember(MemberVO member) {
+		return mapper.updateWithdrawMember(member);
+	}
+
+	// ==========================================================
+	// [ 관리자 ]
+	// 회원 목록 조회 요청
+	public List<MemberVO> getMemberList() {
+		return mapper.selectMemberList();
+	}
+
 
 }

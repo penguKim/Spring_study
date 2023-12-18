@@ -1,5 +1,7 @@
 package com.itwillbs.mvc_board.controller;
 
+import java.util.List;
+
 import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,6 +126,13 @@ public class MemberController {
 		MemberVO dbMember = memberService.getMember(member);
 //		System.out.println(dbMember);
 		
+		// 만약, 회원 상태(member_status)값이 3일 경우
+		// "fail_back" 포워딩 처리("탈퇴한 회원입니다!")
+		if(dbMember.getMember_status() == 3) {
+			model.addAttribute("msg", "탈퇴한 회원입니다!");
+			return "fail_back";
+		} 
+		
 		// BCryptPasswordEncoder 객체를 활용한 패스워드 비교
 		// => 입력받은 패스워드(평문)와 DB 에 저장된 패스워드(암호문)는 직접적인 문자열 비교 불가
 		// => 일반적인 경우 전달받은 평문과 DB 에 저장된 암호문을 복호화하여 비교하면 되지만
@@ -162,110 +171,183 @@ public class MemberController {
 	@GetMapping("MemberInfo")
 	public String info(MemberVO member, HttpSession session, Model model) {
 		// 세션 아이디가 없을 경우 "fail_back" 페이지를 통해 "잘못된 접근입니다" 출력 처리
-		String id = (String)session.getAttribute("sId");
-		if(id == null) {
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
 			model.addAttribute("msg", "잘못된 접근입니다!");
 			return "fail_back";
 		}
 		
-		member.setId(id);
+		member.setId(sId);
 		
 		// MemberService - getMember() 메서드 호출하여 회원 상세정보 조회 요청
 		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
 		MemberVO dbMember = memberService.getMember(member);
-//		System.out.println(member);
 		
 		// 조회 결과 Model 객체에 저장
 		model.addAttribute("member", dbMember);
+		// 주민번호(MemberVO - jumin는 뒷자리 첫번째 숫자를 제외한 나머지 * 처리(마스킹)
+		// => 처리된 주민번호를 jumin 멤버변수에 저장
+		// => 주민번호 앞자리 6자리와 뒷자리 1자리까지 추출하여 뒷부분에 * 기호 6개 결합
+		dbMember.setJumin(dbMember.getJumin().substring(0, 8) + "******"); // 0 ~ 8-1 인덱스까지 추출
 		// 회원 상세정보 조회 페이지 포워딩
 		return "member/member_info";
 	}
 	
-	// 회원 정보 수정 폼
+	// ===============================================================
+	// [ 회원 정보 수정 ]
+	// "MemberModifyForm" 서블릿 요청 시 회원 정보 수정 폼 표시
 	@GetMapping("MemberModifyForm")
 	public String modifyForm(MemberVO member, HttpSession session, Model model) {
-		String id = (String)session.getAttribute("sId");
-		
-		if(id == null) {
-			model.addAttribute("msg", "잘못된 접근입니다.");
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
+			model.addAttribute("msg", "잘못된 접근입니다!");
 			return "fail_back";
 		}
-		member.setId(id);
-		
+		// 세션 아이디 MemberVO 객체에 저장
+		member.setId(sId);
+		// MemberService - getMember() 메서드 호출하여 회원 상세정보 조회 요청
+		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
 		MemberVO dbMember = memberService.getMember(member);
-//		System.out.println(member);
-		
+		// 주민번호(MemberVO - jumin는 뒷자리 첫번째 숫자를 제외한 나머지 * 처리(마스킹)
+		// => 처리된 주민번호를 jumin 멤버변수에 저장
+		// => 주민번호 앞자리 6자리와 뒷자리 1자리까지 추출하여 뒷부분에 * 기호 6개 결합
+		dbMember.setJumin(dbMember.getJumin().substring(0, 8) + "******"); // 0 ~ 8-1 인덱스까지 추출		
+		// 조회 결과 Model 객체에 저장
 		model.addAttribute("member", dbMember);
 		
 		return "member/member_modify_form";
 	}
 	
-	// 회원 정보 수정 작업
+	// "MemberModifyPro" 서블릿 요청에 대한 회원 정보 수정 비즈니스 로직 처리
+	// => 추가로 전달되는 새 패스워드(newPasswd) 값을 전달받을 파라미터 변수 1개 추가(Map 사용 가능)
 	@PostMapping("MemberModifyPro")
-	public String modifyPro(MemberVO member, HttpSession session, Model model) {
-		
-		String id = (String)session.getAttribute("sId");
-		
-		if(id == null) {
-			model.addAttribute("msg", "잘못된 접근입니다.");
+	public String modifyPro(MemberVO member, String newPasswd, HttpSession session, Model model) {
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
+			model.addAttribute("msg", "잘못된 접근입니다!");
 			return "fail_back";
 		}
 		
-//		int updateCount = 0;
-//		
-//		if(member.getPasswd() == null) {
-//			updateCount = memberService.modifyMember(member);
-//		} else {
-//			
-//		}
+		// MemberVO 객체의 id 값으로 세션 아이디 저장
+		member.setId(sId);
 		
-		return "redirect:/MemberInfo";
+		// MemberService - getMember() 메서드 호출하여 회원 정보 조회 요청(패스워드 비교용)
+		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
+		MemberVO dbMember = memberService.getMember(member);
+		
+		// BCryptPasswordEncoder 클래스를 활용하여 입력받은 기존 패스워드와 DB 패스워드 비교
+		BCryptPasswordEncoder passwoedEncoder = new BCryptPasswordEncoder();
+		if(!passwoedEncoder.matches(member.getPasswd(), dbMember.getPasswd())) {
+			model.addAttribute("msg", "수정 권한이 없습니다!");
+			return "fail_back";
+		}
+		
+		// 새 패스워드를 입력받았을 경우 BCryptPasswordEncoder 클래스를 활요하여 암호화 처리
+		// 파라미터로는 newPasswd 자체는 있기에 입력값이 없을 경우 ""으로 넘어오지만
+		// 만일의 경우를 대비해서 null값도 비교한다.
+		if(newPasswd != null && !newPasswd.equals("")) {
+			newPasswd = passwoedEncoder.encode(newPasswd);
+		}
+		
+		// MemberService - modifyMember() 메서드 호출하여 회원 정보 수정 요청
+		// => 파라미터 : MemberVO 객체, 새 패스워드(newPasswd)   리턴타입 : int(updateCount)
+		int updateCount = memberService.modifyMember(member, newPasswd);
+		
+		// 회원 정보 수정 요청 결과 판별
+		// => 실패 시 "fail_back" 페이지 포워딩 처리("회원정보 수정 실패!")
+		// => 성공 시 "MemberInfo" 서블릿 리다이렉트
+		if(updateCount > 0) {
+			return "redirect:/MemberInfo";
+		} else {
+			model.addAttribute("msg", "회원정보 수정 실패!");
+			return "fail_back";
+		}
 	}
 	
-	// 회원 삭제 폼
+	// ===============================================================
+	// [ 회원 탈퇴 ]
+	// "MemberWithdrawForm" 서블릿 요청 시 회원 정보 탈퇴 폼 표시
 	@GetMapping("MemberWithdrawForm")
 	public String withdrawForm(HttpSession session, Model model) {
-		
-		String id = (String)session.getAttribute("sId");
-		
-		if(id == null) {
-			model.addAttribute("msg", "잘못된 접근입니다.");
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
+			model.addAttribute("msg", "잘못된 접근입니다!");
 			return "fail_back";
 		}
 		
 		return "member/member_withdraw_form";
 	}
 	
-	// 회원 삭제 작업
+	// "MemberWithdrawPro" 서블릿 요청 시 회원 탈퇴 비즈니스 로직 처리
 	@PostMapping("MemberWithdrawPro")
 	public String withdrawPro(MemberVO member, HttpSession session, Model model) {
-		String id = (String)session.getAttribute("sId");
-		
-		if(id == null) {
-			model.addAttribute("msg", "잘못된 접근입니다.");
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
+			model.addAttribute("msg", "잘못된 접근입니다!");
 			return "fail_back";
 		}
-		member.setId(id);
 		
+		member.setId(sId);
+		
+		// MemberService - getMember() 메서드 호출하여 회원 정보 조회 요청(패스워드 비교용)
+		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
 		MemberVO dbMember = memberService.getMember(member);
 		
-		BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-		boolean isCorrect = passwordEncoder.matches(member.getPasswd(), dbMember.getPasswd());
-		if(isCorrect) {
-			
-			int updateCount = memberService.modifyMember(dbMember);
-			System.out.println(updateCount);
-			if(updateCount > 0) {
-				session.invalidate();
-			}
+		// BCryptPasswordEncoder 클래스를 활용하여 입력받은 기존 패스워드와 DB 패스워드 비교
+		BCryptPasswordEncoder passwoedEncoder = new BCryptPasswordEncoder();
+		if(!passwoedEncoder.matches(member.getPasswd(), dbMember.getPasswd())) {
+			model.addAttribute("msg", "수정 권한이 없습니다!");
+			return "fail_back";
 		}
 		
+		// MemberService - withdrawMember() 메서드 호출하여 회원 탈퇴 처리 요청
+		// => 파라미터 : MemberVO 객체   리턴타입 : int(updateCount)
+		int updateCount = memberService.withdrawMember(member);
 		
-		
-		
-		return "redirect:/";
+		// 탈퇴 처리 결과 판별
+		// => 실패 시 "fail_back" 포워딩 처리("회원 탈퇴 실패!")
+		// => 성공 시 세션 초기화 후 메인페이지 리다이렉트
+		if(updateCount > 0) {
+			session.invalidate();
+			return "redirect:/";
+		} else {
+			model.addAttribute("msg", "회원 탈퇴 실패!");
+			return "fail_back";
+		}
 	}
 	
+	// =======================================================================
+	// [ 관리자 페이지 ]
+	@GetMapping("MemberAdminMain")
+	public String adminMain(HttpSession session, Model model) {
+		// 세션 아이디가 null 이거나 "admin" 이 아닐 경우
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null || !sId.equals("admin")) {
+			model.addAttribute("msg", "잘못된 접근입니다!");
+			return "fail_back";
+		}
+		return "admin/admin_main";
+	}
+	
+	// [ 회원 목록 조회 ]
+	@GetMapping("AdminMemberList")
+	public String memberList(HttpSession session, Model model) {
+		// 세션 아이디가 null 이거나 "admin" 이 아닐 경우
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null || !sId.equals("admin")) {
+			model.addAttribute("msg", "잘못된 접근입니다!");
+			return "fail_back";
+		}
+		
+		// MemberService - getMemberList() 메서드 호출하여 회원 목록 조회 요청
+		// => 파라미터 : 없음   리턴타입 : List<MemberVO>(memberList)
+		List<MemberVO> memberList = memberService.getMemberList();
+		System.out.println(memberList);
+		// Model 객체에 회원 목록 조회 결과 저장
+		model.addAttribute("memberList", memberList);
+		// 회원 목록 조회 페이지(admin/member_list.jsp)로 포워딩
+		return "admin/member_list";
+	}
 	
 	
 }

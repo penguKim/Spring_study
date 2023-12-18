@@ -28,6 +28,11 @@
 			| <a href="MemberInfo">${sessionScope.sId }</a>
 			<%-- 로그아웃 클릭 시 자바스크립트 confirmLogout() 함수 실행 --%>
 			| <a href="javascript:confirmLogout()">로그아웃</a>
+			<%-- 만약, 세션 아이디가 관리자("admin") 일 경우 --%>
+			<%-- 관리자 페이지 하이퍼링크 표시("MemberAdminMain" 서블릿 요청) --%>
+			<c:if test="${sessionScope.sId eq 'admin' }">
+				| <a href="MemberAdminMain">관리자페이지</a>
+			</c:if>
 		</c:otherwise>
 	</c:choose>
 </div>

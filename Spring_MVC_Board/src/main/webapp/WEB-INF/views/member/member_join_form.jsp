@@ -39,7 +39,7 @@
 			let regex = /^[A-Za-z0-9][\w]{3,15}$/; // 첫자리는 따로 검사 후 뒷자리는 모든 문자열 검사
 			// 정규표현식 객체의 exec() 메서드를 호출하여 검증할 문자열 전달 => true/false 리턴
 			if(!regex.exec(id)) { // 입력값 검증 실패 시
-				console.log(regex.exec(id))
+				console.log(regex.exec(id));
 				$("#checkIdResult").html("영문자, 숫자, _조합 4 ~ 16자리 필수(첫글자 _ 사용 불가)!");
 				$("#checkIdResult").css("color", "red");
 			} else { // 입력값 검증 성공 시

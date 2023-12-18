@@ -269,42 +269,33 @@
 					</td>
 				</tr>
 				<tr>
+					<th>기존 비밀번호</th>
+					<td>
+						<input type="password" name="passwd" placeholder="8 ~ 16글자" required>
+						<span id="checkPasswdResult"></span>
+					</td>
+				</tr>
+				<tr>
 					<th>새 비밀번호</th>
 					<td>
-						<input type="password" name="passwd" placeholder="8 ~ 16글자(변경시에만 입력)">
-						<span id="checkPasswdResult"></span>
+						<input type="password" name="newPasswd" placeholder="8 ~ 16글자(변경시에만 입력)">
+						<span id="checkNewPasswdResult"></span>
 					</td>
 				</tr>
 				<tr>
 					<th>새 비밀번호확인</th>
 					<td>
-						<input type="password" name="passwd2" placeholder="(변경시에만 입력)">
-						<span id="checkPasswd2Result"></span>
+						<input type="password" name="newPasswd2" placeholder="(변경시에만 입력)">
+						<span id="checkNewPasswd2Result"></span>
 					</td>
 				</tr>
 				<tr>
 					<th>주민번호</th>
-					<td>(변경불가)</td>
+					<td>${member.jumin }(변경불가)</td>
 				</tr>
 				<tr>
 					<th>주소</th>
 					<td>
-						<%--
-						==================================================================
-						[ 자바 코드를 통해 전달받은 주소에 대한 문자열 편집 ]
-						JSTL - functions 라이브러리의 split() 함수 활용하여 주소 분리
-						1. JSTL 의 functions 라이브러리 등록 필요(prefix : fn)
-						2. split() 함수를 사용하여 "/" 기준으로 문자열 분리 후 변수에 저장
-						   => ${fn:split(원본문자열, '구분자')} 로 분리 후
-						      <c:set> 태그 활용하여 분리된 데이터가 저장된 배열 변수에 저장
-						   => 주의! 원본 문자열을 EL 을 통해 전달 시 ${} 중복 사용 X
-						   => String[] arrAddress = address.split("/"); 와 동일한 작업 수행
-						3. 분리된 데이터가 저장된 배열을 활용하여 각 데이터 출력
-						   => EL 에서의 배열 사용은 일반 배열과 동일하게 접근
-						   => ${배열명[인덱스]}
-						==================================================================
-						--%>
-<%-- 						<c:set var="arrAddress" value="${fn:split(member.address, '/') }"/> --%>
 						<input type="text" name="post_code" id="postCode" value="${member.post_code }" size="6" required>
 						<input type="button" id="btnSearchAddress" value="주소검색">
 						<br>
@@ -319,7 +310,7 @@
 						<%-- 이메일 주소 분리("@" 기준)하여 표시 --%>
 						<c:set var="arrEmail" value="${fn:split(member.email, '@') }"/>
 						<input type="text" name="email1" size="8" value="${arrEmail[0] }" required> @
-<%-- 						<input type="text" name="email2" size="8" value="${arrEmail[1] }" required> --%>
+						<input type="text" name="email2" size="8" value="${arrEmail[1] }" required>
 						<select name="emailDomain">
 							<option value="">직접입력</option>
 							<option value="naver.com">naver.com</option>
