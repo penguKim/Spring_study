@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -64,7 +65,17 @@
 			</tr>
 			<tr>
 				<td colspan="2" align="center">
-					<input type="button" value="정보수정" onclick="location.href='MemberModifyForm'">
+				<%-- 12-19 관리자 수정 사항 --%>
+				<%-- 만약, 현재 세션 아이디가 관리자이면서, 조회할 아이디가 관리자가 아닐 경우 --%>
+				<%-- 회원정보수정 폼 요청 시 id 파라미터로 조회할 회원의 아이디 전달 --%>
+				<c:choose>
+					<c:when test="${sessionScope.sId eq 'admin' and member.id ne 'admin' }">
+						<input type="button" value="정보수정" onclick="location.href='MemberModifyForm?id=${member.id}'">
+					</c:when>
+					<c:otherwise>
+						<input type="button" value="정보수정" onclick="location.href='MemberModifyForm'">
+					</c:otherwise>
+				</c:choose>
 					<input type="button" value="회원탈퇴" onclick="location.href='MemberWithdrawForm'">
 					<input type="button" value="돌아가기">
 				</td>

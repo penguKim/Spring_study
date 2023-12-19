@@ -177,7 +177,19 @@ public class MemberController {
 			return "fail_back";
 		}
 		
-		member.setId(sId);
+		
+		// 12-19 추가내용
+		// 관리자 계정일 경우 회원 조회시 해당 회원의 정보가 출력되어야한다.
+		
+		// 만약, 현재 세션이 관리자가 아니거나
+		// 관리자이면서 id 파라미터가 없을 경우(null 또는 널스트링)
+		// MemberVO 객체의 id 값을 세션 아이디로 교체(덮어쓰기)
+		// 파라미터가 없을 경우는 null, 파라미터는 있지만 데이터가 없으면 ""
+		// 두가지 경우를 고려해서 null과 "" 둘 다 판별한다.
+		if(!sId.equals("admin") || sId.equals("admin") && (member.getId() == null || member.getId().equals(""))) {
+			member.setId(sId);
+		}
+		
 		
 		// MemberService - getMember() 메서드 호출하여 회원 상세정보 조회 요청
 		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
@@ -203,8 +215,13 @@ public class MemberController {
 			model.addAttribute("msg", "잘못된 접근입니다!");
 			return "fail_back";
 		}
-		// 세션 아이디 MemberVO 객체에 저장
-		member.setId(sId);
+		// 만약, 현재 세션이 관리자가 아니거나
+		// 관리자이면서 id 파라미터가 없을 경우(null 또는 널스트링)
+		// MemberVO 객체의 id 값을 세션 아이디로 교체(덮어쓰기)
+		if(!sId.equals("admin") || sId.equals("admin") && (member.getId() == null || member.getId().equals(""))) {
+			member.setId(sId);
+		}
+		
 		// MemberService - getMember() 메서드 호출하여 회원 상세정보 조회 요청
 		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
 		MemberVO dbMember = memberService.getMember(member);
@@ -228,8 +245,13 @@ public class MemberController {
 			return "fail_back";
 		}
 		
-		// MemberVO 객체의 id 값으로 세션 아이디 저장
-		member.setId(sId);
+		// 만약, 현재 세션이 관리자가 아니거나
+		// 관리자이면서 id 파라미터가 없을 경우(null 또는 널스트링)
+		// MemberVO 객체의 id 값을 세션 아이디로 교체(덮어쓰기)
+		if(!sId.equals("admin") || sId.equals("admin") && (member.getId() == null || member.getId().equals(""))) {
+			member.setId(sId);
+		}
+		
 		
 		// MemberService - getMember() 메서드 호출하여 회원 정보 조회 요청(패스워드 비교용)
 		// => 파라미터 : MemberVO 객체   리턴타입 : MemberVO(dbMember)
@@ -237,10 +259,18 @@ public class MemberController {
 		
 		// BCryptPasswordEncoder 클래스를 활용하여 입력받은 기존 패스워드와 DB 패스워드 비교
 		BCryptPasswordEncoder passwoedEncoder = new BCryptPasswordEncoder();
-		if(!passwoedEncoder.matches(member.getPasswd(), dbMember.getPasswd())) {
-			model.addAttribute("msg", "수정 권한이 없습니다!");
-			return "fail_back";
+		// 만약, 현재 세션이 관리자가 아니거나
+		// 관리자이면서 id 파라미터가 없을 경우(null 또는 널스트링)
+		// MemberVO 객체의 id 값을 세션 아이디로 교체(덮어쓰기)
+		if(!sId.equals("admin") || sId.equals("admin") && (member.getId() == null || member.getId().equals(""))) {
+			// 이 때, 동일한 조건에서 패스워드 검증도 추가로 수행
+			// => 관리자가 다른 회원의 정보를 수정할 경우에는 패스워드 검증 수행 생략됨
+			if(!passwoedEncoder.matches(member.getPasswd(), dbMember.getPasswd())) {
+				model.addAttribute("msg", "수정 권한이 없습니다!");
+				return "fail_back";
+			}
 		}
+		
 		
 		// 새 패스워드를 입력받았을 경우 BCryptPasswordEncoder 클래스를 활요하여 암호화 처리
 		// 파라미터로는 newPasswd 자체는 있기에 입력값이 없을 경우 ""으로 넘어오지만
@@ -257,7 +287,13 @@ public class MemberController {
 		// => 실패 시 "fail_back" 페이지 포워딩 처리("회원정보 수정 실패!")
 		// => 성공 시 "MemberInfo" 서블릿 리다이렉트
 		if(updateCount > 0) {
-			return "redirect:/MemberInfo";
+			// 관리자가 다른 회원 정보 수정 시 MemberInfo 서블릿 주소에 아이디 파라미터 결합
+			if(!sId.equals("admin") || sId.equals("admin") && (member.getId() == null || member.getId().equals(""))) {
+				// 본인 정보를 조회할 경우
+				return "redirect:/MemberInfo";
+			} else {
+				return "redirect:/MemberInfo?id=" + member.getId();
+			}
 		} else {
 			model.addAttribute("msg", "회원정보 수정 실패!");
 			return "fail_back";
