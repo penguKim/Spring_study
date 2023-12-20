@@ -79,7 +79,19 @@
 	<!-- 게시판 리스트 -->
 	<h2>게시판 글 목록</h2>
 	<section id="buttonArea">
-		<input type="button" value="글쓰기" onclick="location.href='BoardWriteForm.bo'" />
+		<%-- 검색 기능을 위한 폼 생성 --%>
+		<form action="BoardList">
+			<%-- 검색 타입 목록(셀렉트박스), 검색어(텍스트박스) 추가 --%>
+			<select name="searchType">
+				<option value="subject">제목</option>
+				<option value="content">내용</option>
+				<option value="subject_content">제목&내용</option>
+				<option value="name">작성자</option>
+			</select>
+			<input type="text" name="searchKeyword">
+			<input type="submit" value="검색">
+			<input type="button" value="글쓰기" onclick="location.href='BoardWriteForm'" />
+		</form>
 	</section>
 	<section id="listForm">
 		<table>
@@ -107,7 +119,7 @@
 						</c:if>
 						<%-- 제목 클릭 시 하이퍼링크 설정(BoardDetail.bo) --%>
 						<%-- 파라미터 : 글번호(board_num), 페이지번호(pageNum) --%>
-						<a href="BoardDetail.bo?board_num=${board.board_num }&pageNum=${pageNum }">
+						<a href="BoardDetail?board_num=${board.board_num }&pageNum=${pageNum }">
 							${board.board_subject }</a>
 					</td>
 					<td>${board.board_name }</td>
@@ -130,7 +142,7 @@
 		<%-- [이전] 버튼 클릭 시 BoardList.bo 서블릿 요청(파라미터 : 현재 페이지번호 - 1) --%>
 		<%-- 단, 현재 페이지 번호(pageNum) 가 1보다 클 경우에만 동작(아니면 비활성화 처리) --%>
 		<input type="button" value="이전" 
-			onclick="location.href='BoardList.bo?pageNum=${pageNum - 1}'"
+			onclick="location.href='BoardList?pageNum=${pageNum - 1}'"
 			<c:if test="${pageNum <= 1 }">disabled</c:if>
 		>
 		<%-- 현재 페이지 번호가 저장된 pageInfo 객체를 통해 페이지 번호 출력 --%>
@@ -144,14 +156,14 @@
 					<b>${i }</b> <%-- 현재 페이지 번호 --%>
 				</c:when>
 				<c:otherwise>
-					<a href="BoardList.bo?pageNum=${i }">${i }</a> <%-- 다른 페이지 번호 --%>
+					<a href="BoardList?pageNum=${i }">${i }</a> <%-- 다른 페이지 번호 --%>
 				</c:otherwise>
 			</c:choose>
 		</c:forEach>
 		<%-- [다음] 버튼 클릭 시 BoardList.bo 서블릿 요청(파라미터 : 현재 페이지번호 + 1) --%>
 		<%-- 단, 현재 페이지 번호(pageNum) 가 최대 페이지번호 보다 작을 경우에만 동작(아니면 비활성화 처리) --%>
 		<input type="button" value="다음" 
-			onclick="location.href='BoardList.bo?pageNum=${pageNum + 1}'"
+			onclick="location.href='BoardList?pageNum=${pageNum + 1}'"
 			<c:if test="${pageNum >= pageInfo.maxPage }">disabled</c:if>
 		>
 	</section>
