@@ -76,6 +76,7 @@
 		<!-- => 검색어 데이터는 searchKeyword 변수에 저장되어 있으므로 변수명 그대로 활용 -->
 		<!-- => 자바 문법과 동일하게 문자열 비교를 equals() 메서드로 수행 -->	
 		<if test="!searchKeyword.equals('')">
+			WHERE
 			<!-- 2. 검색타입(searchType)에 따른 WHERE 절 조건 대상 변경 -->
 			<!-- => searchType 변수의 문자열 비교(subject, content, subject_content, name) -->
 			<choose>
@@ -112,10 +113,10 @@
 				</otherwise>
 			</choose>
 		</if>
-		ORDER BY 
+		ORDER BY
 			board_re_ref DESC
 			, board_re_seq ASC
-		LIMIT 
+		LIMIT
 			#{startRow}
 			, #{listLimit}
 	</select>
@@ -124,5 +125,64 @@
 	<select id="selectBoardListCount" resultType="int">
 		SELECT COUNT(*)
 		FROM board
+			<if test="!searchKeyword.equals('')">
+			WHERE
+			<choose>
+				<when test="searchType.equals('subject')">
+					board_subject LIKE '%${searchKeyword}%'
+				</when>
+				<when test="searchType.equals('content')">
+					board_content LIKE '%${searchKeyword}%'
+				</when>
+				<when test="searchType.equals('subject_content')">
+					board_subject LIKE '%${searchKeyword}%'
+					OR board_content LIKE '%${searchKeyword}%'
+				</when>
+				<when test="searchType.equals('name')">
+					board_name LIKE #{searchKeyword}
+				</when>
+				<otherwise>
+					1=1 -- WHERE 절을 포함하되 조건을 걸고 싶지 않을 경우 활용 가능한 조건식
+				</otherwise>
+			</choose>
+		</if>
 	</select>
+	
+	<!-- 글 상세 정보 조회 - SELECT -->
+	<select id="selectBoard" resultType="board">
+		SELECT *
+		FROM board
+		WHERE board_num = #{board_num}
+	</select>
+	<!-- 글 조회수 증가 - UPDATE -->
+	<!-- <selectKey> 활용하여 조회수 증가 후 board_readcount 값을 조회하여 BoardVO 객체에 저장 -->
+	<!-- 이 때, 조회 결과값을 저장할 변수가 파라미터로 전달받은 객체 멤버변수와 동일할 경우 -->
+	<!-- 변수명 keyProperty 속성값으로 지정 시 자동으로 해당 객체 내의 멤버변수에 저장 -->
+	<update id="updateReadcount">
+		<!-- selectKey 태그의 위치와 상관없이 order 속성값에 따라 실행 순서가 결정됨 -->
+		<selectKey keyProperty="board_readcount" resultType="int" order="AFTER">
+			SELECT board_readcount
+			FROM board
+			WHERE board_num = #{board_num}
+		</selectKey>
+		UPDATE board
+		SET board_readcount = board_readcount + 1
+		WHERE board_num = #{board_num}
+	</update>
+	
+	<!-- 게시글 삭제 - DELETE -->
+	<delete id="deleteBoard">
+		DELETE FROM board
+		WHERE board_num = #{board_num}
+	</delete>
+	<!-- 게시글 수정 - UPDATE -->
+	<update id="updateBoard">
+		UPDATE board
+		SET
+			
+		
+		WHERE board_num = #{board_num}
+	</update>
 </mapper>
+
+

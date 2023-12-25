@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -84,9 +85,9 @@ public class BoardController {
 		String uploadDir = "/resources/upload"; // 가상의 경로(이클립스 프로젝트 상에 생성한 경로)
 		// 가상 디렉토리에 대한 실제 경로 알아내기
 //		String saveDir = request.getServletContext().getRealPath(uploadDir); // 또는 
-		String saveDir = session.getServletContext().getRealPath(uploadDir); // 또는 
+		String saveDir = session.getServletContext().getRealPath(uploadDir);
 //		System.out.println("실제 업로드 경로 : " + saveDir);
-		// => D:\Shared\Spring\workspace_spring5\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\Spring_MVC_Board\resources\ upload
+		// => D:\workspace_sts\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\Spring_MVC_Board\resources\ upload
 		
 		// 업로드 파일들에 대한 관리의 용이성을 증대시키기 위해
 		// 서브(하위) 디렉토리를 활용하여 파일들을 분산 관리 필요
@@ -286,6 +287,146 @@ public class BoardController {
 		
 		return "board/board_list";
 	}
+	
+	// =======================================================================
+	// "BoardDetail" 서블릿 요청에 대한 글 상세정보 조회 비즈니스 로직 요청
+	@GetMapping("BoardDetail")
+	public String detail(@RequestParam int board_num, Model model) {
+		
+		// BoardService - getBoard() 메서드 호출하여 글 상세정보 조회 작업 요청
+		// => 파라미터 : 글번호(board_num)   리턴타입 : BoardVO(board)
+		// 단, 조회수 증가 작업 추가 시 실제 글 상세정보 조회를 제외한
+		// 글 수정 또는 답글 작성 과정에서의 조회는 조회수 증가가 수행되지 않도록 파라미터 추가 
+		// => 파라미터 : 글번호(board_num), 조회수 증가 여부(true : 증가, false : 미증가)
+		//    리턴타입 : BoardVO(board)
+		BoardVO board = boardService.getBoard(board_num, true);
+		// => selectKey로 증가한 조회수가 반영된 객체가 리턴된다.
+		
+		
+		// 만약, 조회 게시물 정보가 없을 경우 "존재하지 않는 게시물입니다" 출력 처리
+		if(board == null) {
+			model.addAttribute("msg", "존재하지 않는 게시물입니다.");
+			return "fail_back";
+		}
+		
+		// Model 객체에 BoardVO 객체 저장
+		model.addAttribute("board", board);
+		
+		// board/board_view.jsp 페이지 포워딩
+		return "board/board_view";
+	}
+	
+	// =======================================================================
+	// "BoardDelete" 서블릿 요청에 대한 글 삭제 비즈니스 로직 요청
+	@GetMapping("BoardDelete")
+	public String delete(
+				BoardVO board, @RequestParam(defaultValue = "1") String pageNum,
+				HttpSession session, Model model) {
+		// 게시물 삭제 권한 확인
+		// 세션 아이디 없을 경우 처리
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
+			model.addAttribute("msg", "로그인이 필요합니다!");
+			// targetURL 속성명으로 로그인 폼 페이지 서블릿 주소 저장
+			model.addAttribute("targetURL", "MemberLoginForm");
+			return "forward";
+		}
+		
+		// BoardService - getBoard() 메서드 재사용하여 게시물 1개 정보 조회
+		// => 조회수가 증가되지 않도록 두번째 파라미터값 false 전달
+		BoardVO dbBoard = boardService.getBoard(board.getBoard_num(), false);
+		
+		// 조회된 게시물의 작성자(board_name)와 세션 아이디가 다를 경우 "잘못된 접근입니다" 처리
+		// => 단, 관리자는 자신의 게시물이 아니더라도 삭제가 가능해야하므로
+		//    세션아이디가 관리자가 아닐 경우라는 조건도 추가
+		if(dbBoard == null || !sId.equals(dbBoard.getBoard_name()) && !sId.equals("admin")) {
+			model.addAttribute("msg", "잘못된 접근입니다.");
+			return "fail_back";
+		}
+		
+		// BoardService - removeBoard() 메서드 호출하여 글 삭제 작업 요청
+		// => 파라미터 : BoardVO 객체(글번호 저장 필수)   리턴타입 : int(deleteCount)
+		int deleteCount = boardService.removeBoard(board);
+		
+		if(deleteCount > 0) { // DB 에서 게시물(레코드) 삭제 성공 시
+			try {
+				// -------------------------------------------------------------
+				// [ 서버에서 파일 삭제 ]
+				// 실제 업로드 경로 알아내기
+				String uploadDir = "/resources/upload"; // 가상의 경로(이클립스 프로젝트 상에 생성한 경로)
+				String saveDir = session.getServletContext().getRealPath(uploadDir);
+				
+				// 파일명이 널스트링이 아닐 경우에만 삭제 작업 수행
+//				if(!dbBoard.getBoard_file1().equals("")) {
+//					// Paths.get() 메서드 호출하여 파일 경로 관리 객체인 Path 객체 생성
+//					// => 파라미터로 업로드 디렉토리명과 서브디렉토리를 포함한 파일명 결합하여 전달
+//					// => Files.deleteIfExists() 메서드 호출하여 파일이 존재할 경우에만 파일 삭제
+//					Path path = Paths.get(saveDir + "/" + dbBoard.getBoard_file1());
+//					// => 위의 작업은 실제 경로 및 파일 존재 여부와 무관하게 단순 객체만 생성함
+//					Files.deleteIfExists(path);
+//				}
+//				
+//				if(!dbBoard.getBoard_file2().equals("")) {
+//					Path path = Paths.get(saveDir + "/" + dbBoard.getBoard_file2());
+//					Files.deleteIfExists(path);
+//				}
+//				
+//				if(!dbBoard.getBoard_file3().equals("")) {
+//					Path path = Paths.get(saveDir + "/" + dbBoard.getBoard_file3());
+//					Files.deleteIfExists(path);
+//				}
+				// -----------------------------------------------------------
+				// 파일 삭제에 사용된 중복 코드 제거를 위해 배열 + 반복문 활용
+				// 배열 arrFileNames 에 파일명 3개 저장
+				String[] arrFileNames = {dbBoard.getBoard_file1(), dbBoard.getBoard_file1(), dbBoard.getBoard_file1()}; 
+				// for 문을 활용하여 배열 반복
+				for(String fileName : arrFileNames) {
+					if(!fileName.equals("")) {
+						Path path = Paths.get(saveDir + "/" + fileName);
+						Files.deleteIfExists(path);
+					}
+				}
+				
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			// ----------------------------------------------------------
+			// 글 목록 페이지 리다이렉트(페이지번호 파라미터 전달)
+			return "redirect:/BoardList?pageNum=" + pageNum;
+		} else {
+			model.addAttribute("msg", "글 삭제 실패!");
+			return "fail_back";
+		}
+	}
+	
+	
+	@GetMapping("BoardModifyForm")
+	public String modifyForm(BoardVO board, @RequestParam(defaultValue = "1") String pageNum,
+							HttpSession session, Model model) {
+		// 게시물 삭제 권한 확인
+		// 세션 아이디 없을 경우 처리
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
+			model.addAttribute("msg", "로그인이 필요합니다!");
+			// targetURL 속성명으로 로그인 폼 페이지 서블릿 주소 저장
+			model.addAttribute("targetURL", "MemberLoginForm");
+			return "forward";
+		}
+		
+		board = boardService.getBoard(board.getBoard_num(), false);
+		
+		if(board == null || !sId.equals(board.getBoard_name()) && !sId.equals("admin")) {
+			model.addAttribute("msg", "수정 권한이 없습니다.");
+			return "fail_back";
+		}
+		
+		model.addAttribute("board", board);
+		
+		return "";
+	}
+	
+	
 }
 
 

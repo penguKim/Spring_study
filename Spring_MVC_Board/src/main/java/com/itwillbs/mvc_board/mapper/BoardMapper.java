@@ -22,4 +22,16 @@ public interface BoardMapper {
 	int selectBoardListCount(@Param("searchType") String searchType, 
 							 @Param("searchKeyword") String searchKeyword);
 
+	// 게시글 상세 조회 작업
+	BoardVO selectBoard(int board_num);
+
+	// 조회수 증가 작업
+	void updateReadcount(BoardVO board);
+
+	// 게시글 삭제 작업
+	int deleteBoard(BoardVO board);
+
+	// 게시글 수정 작업
+	int updateBoard(BoardVO board);
+
 }

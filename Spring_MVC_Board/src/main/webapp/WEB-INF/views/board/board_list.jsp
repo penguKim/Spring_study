@@ -83,12 +83,12 @@
 		<form action="BoardList">
 			<%-- 검색 타입 목록(셀렉트박스), 검색어(텍스트박스) 추가 --%>
 			<select name="searchType">
-				<option value="subject">제목</option>
-				<option value="content">내용</option>
-				<option value="subject_content">제목&내용</option>
-				<option value="name">작성자</option>
+				<option value="subject" <c:if test="${param.searchType eq 'subject' }">selected</c:if>>제목</option>
+				<option value="content" <c:if test="${param.searchType eq 'content' }">selected</c:if>>내용</option>
+				<option value="subject_content" <c:if test="${param.searchType eq 'subject_content' }">selected</c:if>>제목&내용</option>
+				<option value="name"  <c:if test="${param.searchType eq 'name' }">selected</c:if>>작성자</option>
 			</select>
-			<input type="text" name="searchKeyword">
+			<input type="text" name="searchKeyword" value="${param.searchKeyword }">
 			<input type="submit" value="검색">
 			<input type="button" value="글쓰기" onclick="location.href='BoardWriteForm'" />
 		</form>
