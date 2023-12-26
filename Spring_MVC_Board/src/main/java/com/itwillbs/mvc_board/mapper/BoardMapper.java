@@ -31,7 +31,10 @@ public interface BoardMapper {
 	// 게시글 삭제 작업
 	int deleteBoard(BoardVO board);
 
+
+	// 게시물 수정 - 파일 삭제 작업
+	int updateBoardFile(BoardVO board);
+
 	// 게시글 수정 작업
 	int updateBoard(BoardVO board);
-
 }
