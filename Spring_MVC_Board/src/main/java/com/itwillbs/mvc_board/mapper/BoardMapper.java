@@ -37,4 +37,10 @@ public interface BoardMapper {
 
 	// 게시글 수정 작업
 	int updateBoard(BoardVO board);
+
+	// 기존 답글 순서번호 조정
+	void updateBoardReSeq(BoardVO board);
+	
+	// 답글 등록 작업
+	int insertReplyBoard(BoardVO board);
 }

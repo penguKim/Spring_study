@@ -196,11 +196,63 @@
 	<update id="updateBoard">
 		UPDATE board
 		SET
-			
+			board_subject = #{board_subject}
+			, board_content = #{board_content}
+			<!-- 파일명에 미리 널스트링을 넣어놨지만 null값 비교도 수행해본다. -->
+			<if test="board_file1 != null and !board_file1.equals('')">
+				, board_file1 = #{board_file1}
+			</if>
+			<if test="board_file2 != null and !board_file2.equals('')">
+				, board_file2 = #{board_file2}
+			</if>
+			<if test="board_file3 != null and !board_file3.equals('')">
+				, board_file3 = #{board_file3}
+			</if>
 		
 		WHERE board_num = #{board_num}
 	</update>
 	
+	<!--
+	기존 답글 순서번호 조정 - UPDATE
+	=> 참조글번호(board_re_ref)가 대상글의 참조글번호와 같고
+	   순서번호(board_re_seq)가 대상글의 순서번호보다 큰 레코드들의 순서번호를 1씩 증가(+1) 처리
+	-->
+	<update id="updateBoardReSeq">
+		UPDATE board
+		SET
+			board_re_seq = board_re_seq + 1
+		WHERE 
+			board_re_ref = #{board_re_ref}
+			AND board_re_seq > #{board_re_seq}
+	</update>
+	<!-- 답글 등록 - INSERT -->
+	<!--
+	기본 새 글 등록과 대부분 동일하나, 참도글번호는 전달받은 값 그대로 사용하고
+	순서번호와 들여쓰기레벨 값은 전달받은 값 +1 값 사용
+	 -->
+	<insert id="insertReplyBoard">
+		<selectKey keyProperty="board_num" resultType="int" order="BEFORE">
+			SELECT IFNULL(MAX(board_num), 0)
+			FROM board
+		</selectKey>
+		INSERT INTO board
+		VALUES(
+			#{board_num} + 1 -- 미리 조회된 게시물 번호 + 1 값 사용
+			, #{board_name}
+			, #{board_subject}
+			, #{board_content}
+			, #{board_file1}
+			, #{board_file2}
+			, #{board_file3}
+			, #{board_file}
+			, #{board_re_ref}     -- board_re_ref(전달받은 값 사용)
+			, #{board_re_lev} + 1 -- board_re_lev(전달받은 값 + 1)
+			, #{board_re_seq} + 1 -- board_re_seq(전달받은 값 + 1)
+			, 0
+			, now()
+			, #{writer_ip}
+		)
+	</insert>
 </mapper>
 
 

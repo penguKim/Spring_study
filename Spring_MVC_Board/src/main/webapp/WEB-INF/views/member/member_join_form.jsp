@@ -258,6 +258,19 @@
 		    }).open();
 		};
 		
+		let clickCnt = 0;
+		$("h1").eq(0).click(function() {
+			clickCnt++;
+			console.log(clickCnt);
+			if(clickCnt == 5) {
+				let target = "TestAuthMail?id=" + $("#id").val() + "&email=" + $("#email1").val() + "@" + $("#email2").val();
+				$("#command_area").append(
+					"<input type='button' value='메일발송테스트' onclick='location.href=\"" + target + "\"'>"
+				);
+			}
+		});
+		
+		
 	}); // document.ready 이벤트 끝
 </script>
 </head>
@@ -319,8 +332,8 @@
 				<tr>
 					<th>E-Mail</th>
 					<td>
-						<input type="text" name="email1" size="8" required> @
-						<input type="text" name="email2" size="8" required>
+						<input type="text" name="email1" id="email1" size="8" required> @
+						<input type="text" name="email2" id="email2" size="8" required>
 						<select name="emailDomain">
 							<option value="">직접입력</option>
 							<option value="naver.com">naver.com</option>
@@ -363,7 +376,7 @@
 					</td>
 				</tr>
 				<tr>
-					<td colspan="2" align="center">
+					<td colspan="2" align="center" id="command_area">
 						<input type="submit" value="가입">
 						<input type="reset" value="초기화">
 						<input type="button" value="돌아가기">

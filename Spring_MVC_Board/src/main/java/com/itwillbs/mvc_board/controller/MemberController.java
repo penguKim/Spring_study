@@ -13,13 +13,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.itwillbs.mvc_board.service.MemberService;
+import com.itwillbs.mvc_board.service.SendMailService;
+import com.itwillbs.mvc_board.vo.MailAuthInfoVO;
 import com.itwillbs.mvc_board.vo.MemberVO;
 
 @Controller
 public class MemberController {
 	// MemberService 객체 자동 주입
 	@Autowired
-	MemberService memberService;
+	private MemberService memberService;
+	// SendMailService 객체 자동 주입
+	@Autowired
+	private SendMailService mailService;
 	
 	// [ 회원 가입 ]
 	// "MemberJoinForm" 요청 joinForm() 메서드 정의(GET)
@@ -65,7 +70,18 @@ public class MemberController {
 		// => 실패 시 "fail_back.jsp" 페이지 포워딩("msg" 속성값으로 "회원 가입 실패!" 저장)
 		
 		if(insertCount > 0) {
+			// 12-29 추가내용
 			// -------- 인증메일 발송 작업 추가 --------
+			// SendMailService - sendAuthMail() 메서드 호출하여 인증 메일 발송 요청
+			// => 파라미터 : 아이디, 이메일(= 회원 가입 시 입력한 정보)
+			//    리턴타입 : String(auth_code = 인증코드)
+			member.setEmail(member.getEmail1() + "@" + member.getEmail2()); // 이메일 결합
+			String auth_code = mailService.sendAuthMail(member);
+//			System.out.println("인증코드 : " + auth_code);
+			
+			// MemberService - registAuthInfo() 메서드 호출하여 인증 정보 등록 요청
+			// => 파라미터 : 아이디, 인증코드
+			memberService.registMailAuthInfo(member.getId(), auth_code);
 			
 			return "redirect:/MemberJoinSuccess";
 		} else {
@@ -95,6 +111,46 @@ public class MemberController {
 			return "false"; // 중복이 아니라는 의미로 "false" 값 전달
 		} else { // 아이디 중복
 			return "true"; // 중복이라는 의미로 "true" 값 전달
+		}
+	}
+	
+	// --------------------------------------
+	// 인증 메일 발송 테스트를 위한 서블릿 매핑
+	// => URL 을 통해 강제로 회원 아이디와 수신자 이메일 주소 전달받아 사용
+	@GetMapping("TestAuthMail")
+	public String testAuthMail(MemberVO member) {
+		
+		String auth_code = mailService.sendAuthMail(member);
+//		System.out.println("인증코드 : " + auth_code);
+		
+		// MemberService - registAuthInfo() 메서드 호출하여 인증 정보 등록 요청
+		// => 파라미터 : 아이디, 인증코드
+		memberService.registMailAuthInfo(member.getId(), auth_code);
+		
+		
+		
+//		return "member/member_join_success";
+		return "redirect:/MemberJoinSuccess";
+	}
+	
+	// -----------------
+	// "MemberEmailAuth" 서블릿 요청에 대한 메일 인증 작업 비즈니스 로직 처리
+	@GetMapping("MemberEmailAuth")
+	public String emailAuth(MailAuthInfoVO authInfo, Model model) {
+		System.out.println("인증정보 : " + authInfo);
+		
+		// MemberService - requestEmailAuth() 메서드 호출하여 인증 요청
+		// => 파라미터 : MailAuthInfoVO 객체    리턴타입 : boolean(isAuthSuccess)
+		boolean isAuthSuccess = memberService.requestEmailAuth(authInfo);
+		
+		// 인증 요청 결과 판별
+		if(isAuthSuccess) { // 성공
+			model.addAttribute("msg", "인증 성공! 로그인 페이지로 이동합니다!");
+			model.addAttribute("targetURL", "MemberLoginForm");
+			return "forward";
+		} else {
+			model.addAttribute("msg", "인증 실패!");
+			return "fail_back";
 		}
 	}
 	
@@ -148,6 +204,16 @@ public class MemberController {
 			model.addAttribute("msg", "로그인 실패!");
 			return "fail_back";
 		} else {
+			// 12-29 추가내용
+			// 이메일 인증 여부 확인
+			// => 회원정보조회를 통해 MemberVO 객체에 저장된 
+			// 이메일 인증 정보(mail_auth_status) 값이 "N" 일 경우 이메일 미인증 회원이므로
+			//    "이메일 인증 후 로그인이 가능합니다" 출력 후 이전페이지로 돌아가기
+			if(dbMember.getMail_auth_status().equals("N")) {
+				model.addAttribute("msg","이메일 인증 후 로그인이 가능합니다");
+				return "fail_back";
+			}
+			
 			// 세션 객체에 로그인 성공한 아이디를 "sId" 속성으로 추가
 			session.setAttribute("sId", member.getId());
 			// 메인페이지로 리다이렉트
