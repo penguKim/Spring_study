@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -313,6 +314,17 @@ public class BoardController {
 		
 		// Model 객체에 BoardVO 객체 저장
 		model.addAttribute("board", board);
+		// --------------------------------------------------------------------------
+		// 01-03 댓글 처리 구현
+		// 현재 게시물에 포함되어 있는 댓글 목록 조회(댓글은 페이징 처리 생략)
+		// BoardService - getTinyReplyBoardList() 메서드 호출하여 댓글 목록 조회 요청
+		// => 파라미터 : 글번호    리턴타입 : List<Map<String, Object>>(tinyReplyBoardList)
+		List<Map<String, Object>> tinyReplyBoardList = boardService.getTinyReplyBoardList(board_num);
+//		List<Map<String, String>> tinyReplyBoardList = boardService.getTinyReplyBoardList(board_num);
+		
+		// Model 객체에 댓글 목록 객체(List) 추가
+		model.addAttribute("tinyReplyBoardList", tinyReplyBoardList);
+		// --------------------------------------------------------------------------
 		
 		// board/board_view.jsp 페이지 포워딩
 		return "board/board_view";
@@ -698,6 +710,71 @@ public class BoardController {
 			return "fail_back";
 		}
 		
+	}
+	
+	// -----------------------------------------------------------------
+	// [ 댓글 기능 ]
+	// "BoardTinyReplyWrite" 서블릿 요청에 대한 댓글 작성 비즈니스 로직 처리
+	// => 폼 파라미터 데이터를 TinyReplyBoardVO 객체 대신 Map 타입 객체로 처리
+	//    (주의! 파라미터 매핑용으로 Map 타입 선언 시 @RequestParam 어노테이션 필수!)
+	//    (만약, 어노테이션 생략 시 파라미터 데이터가 저장되어 있지 않은 단순 Map 객체가 주입됨)
+	@PostMapping("BoardTinyReplyWrite")
+	public String writeTinyReply(@RequestParam Map<String, String>map, HttpSession session, Model model) {
+//		System.out.println(map);
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
+			model.addAttribute("msg", "잘못된 접근입니다!");
+			return "fail_back";
+		}
+
+		// BoardService - registTinyReplyBoard() 메서드 호출하여 댓글 등록 작업 요청
+		// => 파라미터 : Map 객체    리턴타입 : int(insertCount)
+		int insertCount = boardService.registTinyReplyBoard(map);
+		
+		// 댓글 등록 요청 결과 판별
+		// => 성공 시 글 상세정보(BoardDetail) 서블릿 리다이렉트
+		// => 실패 시 "댓글 작성 실패!" 메세지 처리(fail_back)
+		if(insertCount > 0) {
+			return "redirect:/BoardDetail?board_num="
+					+ map.get("board_num") + "&pageNum=" + map.get("pageNum");
+		} else 	{
+			model.addAttribute("msg", "댓글 작성 실패!");
+			return "fail_back";
+		}
+	}
+	
+	// "BoardTinyReplyDelete" 서블릿 요청에 대한 댓글 삭제 작업 처리
+	@ResponseBody
+	@GetMapping("BoardTinyReplyDelete")
+	public String tinyReplyDelete(@RequestParam Map<String, String> map, HttpSession session) {
+//		System.out.println("파라미터로 전달받은 Map 객체 : " + map);
+		// 세션 아이디가 없을 경우 "invalidSession" 문자열 리턴
+		String sId = (String)session.getAttribute("sId");
+		if(sId == null) {
+			return "invalidSession";
+		}
+		// BoardService - getTinyReplyWriter() 메서드 호출하여 댓글 작성자 조회
+		// => 파라미터 : Map 객체    리턴타입 : Map(map)
+		map = boardService.getTinyReplyWriter(map);
+//		System.out.println("동일한 Map 객체에 조회한 레코드 저장 : " + map);
+		
+		// 댓글 작성자가 세션 아이디와 동일하거나 세션 아이디가 관리자일 경우에만
+		// BoardService - removeTinyReplyBoard() 메서드 호출하여 댓글 삭제 작업 요청
+		// (아니면 "invalidSession" 리턴)
+		// => 파라미터 : Map 객체   리턴타입 : int(deleteCount)
+		
+		if(sId.equals(map.get("reply_name")) || sId.equals("admin")) {
+			int deleteCount = boardService.removeTinyReplyBoard(map);
+			// 삭제 요청 결과 판별
+			// => 성공 시 "true", 실패 시 "false" 리턴
+			if(deleteCount > 0) {
+				return "true";
+			} else {
+				return "false";
+			}
+		} else {
+			return "invalidSession";
+		}
 	}
 }
 

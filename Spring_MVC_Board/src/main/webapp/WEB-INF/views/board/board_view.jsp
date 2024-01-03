@@ -3,12 +3,12 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %> 
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %> 
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>MVC 게시판</title>
+<script src="${pageContext.request.contextPath}/resources/js/jquery-3.7.1.js"></script>
 <script type="text/javascript">
 	function confirmDelete() {
 		// 삭제 버튼 클릭 시 확인창을 통해 "삭제하시겠습니까?" 출력 후
@@ -18,13 +18,61 @@
 			location.href="BoardDelete?board_num=${board.board_num}&pageNum=${param.pageNum }";
 		}
 	}
+	
+	// 대댓글 작성 아이콘 클릭 시
+	function reReplyWriteForm(reply_num, reply_re_ref, reply_re_lev, reply_re_seq) {
+		console.log(reply_num, reply_re_ref, reply_re_lev, reply_re_seq);
+// 		$.ajax({
+// 			url: "",
+// 			data: {
+// 				reply_num:reply_num,
+// 				reply_re_ref: reply_re_ref,
+// 				reply_re_lev: reply_re_lev,
+// 				reply_re_seq: reply_re_seq
+// 			},
+// 			success: function(reReply) {
+				
+// 			}
+// 		});
+	}
+	
+	// 댓글 삭제 아이콘 클릭 시
+	function confirmReplyDelete(reply_num) {
+		if(confirm('댓글을 삭제하시겠습니까?')) { // 확인 클릭 시
+		// AJAX 활용하여 BoardTinyReplyDelete 서블릿 요청(파라미터 : 댓글번호)
+		$.ajax({
+			type: "GET",
+			url: "BoardTinyReplyDelete",
+			data: {
+				"reply_num":reply_num
+			},
+			dataType: "text",
+			success: function(result) {
+				// 댓글 삭제 요청 결과 판별("true"/"false")
+				if(result == "true") {
+					// 댓글 삭제 성공 시 해당 댓글의 tr 태그 자체 삭제
+					// => replyTr_ 문자열과 댓글번호를 조합하여 id 선택자 지정
+					$("#replyTr_" + reply_num).remove();
+				} else if(result == "false") {
+					alert("댓글 삭제 실패");
+				} else if(result == "invalidSession") { // 세션아이디 없을 경우
+					alert("권한이 없습니다!");
+					return;
+				}
+			},
+			error: function() {
+				alert("요청 실패!");
+			}
+		});
+		}
+	}
 </script>
 <!-- 외부 CSS 파일(css/default.css) 연결하기 -->
 <link href="${pageContext.request.contextPath }/resources/css/default.css" rel="stylesheet" type="text/css">
 <style type="text/css">
 	#articleForm {
 		width: 500px;
-		height: 550px;
+		height: 600px;
 		border: 1px solid red;
 		margin: auto;
 	}
@@ -66,6 +114,54 @@
 		margin: auto;
 		width: 500px;
 		text-align: center;
+	}
+	/* --------- 댓글 영역 --------- */
+	#replyArea {
+		width: 500px;
+		height: 150px;
+		margin: auto;
+		margin-top: 20px;
+		margin-bottom: 50px;
+	}
+	
+	#replyTextarea {
+		width: 400px;
+		height: 50px;
+		resize: none; /* 사이즈 조절 막기 */
+		vertical-align: middle;
+	}
+	
+	#replySubmit {
+		width: 85px;
+		height: 55px;
+		vertical-align: middle;
+	}
+	
+	#replyListArea {
+		font-size: 12px;
+		margin-top: 20px;
+	}
+	
+	#replyListArea table, tr, td {
+		border: none;
+	}
+	
+	.replyContent {
+		width: 300px;
+		text-align: left;
+	}
+	
+	.replyContent img {
+		width: 10px;
+		height: 10px;
+	}
+	
+	.replyWriter {
+		width: 80px;
+	}
+	
+	.replyDate {
+		width: 100px;
 	}
 </style>
 </head>
@@ -141,13 +237,6 @@
 		</section>
 	</article>
 	<section id="commandCell">
-	
-		<%-- 답변 버튼은 세션 아이디가 있을 경우에만 표시(생략) --%>
-<%-- 		<c:if test="${not empty sessionscope.sId }"> --%>
-<%-- 			<input type="button" value="답변" onclick="location.href='BoardReplyForm?board_num=${board.board_num}&pageNum=${param.pageNum }'"> --%>
-<%-- 		</c:if> --%>
-
-
 		<%-- 답변과 목록 버튼은 항상 표시 --%>
 		<%-- 수정, 삭제 버튼은 세션 아이디가 있고, 작성자 아이디와 세션 아이디가 같을 경우에만 표시 --%>
 		<%-- 단, 세션 아이디가 관리자일 경우에조 수정, 삭제 버튼 표시 -->
@@ -165,8 +254,84 @@
 			<input type="button" value="삭제" onclick="confirmDelete()">
 		</c:if>
 		
-		<%-- 목록은 BoardList.bo 서블릿 요청(파라미터 : 페이지번호) --%>
+		<%-- 목록은 BoardList 서블릿 요청(파라미터 : 페이지번호) --%>
 		<input type="button" value="목록" onclick="location.href='BoardList?pageNum=${param.pageNum}'">
+	</section>
+	<section id="replyArea">
+		<form action="BoardTinyReplyWrite" method="post">
+		<input type="hidden" name="board_num" value="${board.board_num }">
+		<input type="hidden" name="pageNum" value="${param.pageNum }">
+		<%-- 만약, 아이디를 전송해야할 경우 reply_namem 파라미터 포함 --%>
+		<%-- 단, 현재는 별도의 닉네임들을 사용하지 않으므로 임시로 세션아이디 전달 --%>
+		<%-- (실제로 세션 아이디 사용시에는 컨트롤러에서 HttpSession 객체를 통해 접근) --%>
+		<input type="hidden" name="reply_name" value="${sessionScope.sId }">
+		<%-- 세션 아이디가 없을 경우(미로그인 시) 댓글 작성 차단 --%>
+		<%-- textarea 및 버튼 disabled 처리 --%>
+		<c:choose>
+			<c:when test="${empty sessionScope.sId }"> <%-- 세션 아이디 없음 --%>
+				<textarea id="replyTextarea" name="reply_content" placeholder="로그인 한 사용자만 작성 가능합니다" disabled></textarea>
+				<input type="submit" value="댓글쓰기" id="replySubmit" disabled>
+			</c:when>
+			<c:otherwise>
+				<textarea id="replyTextarea" name="reply_content" required></textarea>
+				<input type="submit" value="댓글쓰기" id="replySubmit">
+			</c:otherwise>
+		</c:choose>
+		</form>
+		<div id="replyListArea">
+			<table>
+			<%-- 댓글 내용(reply_content), 작성자(reply_name), 작성일시(reply_date) 표시 --%>
+			<%-- 반복문을 통해 List 객체로부터 Map 객체 꺼내서 출력 --%>
+			<c:forEach var="tinyReplyBoard" items="${tinyReplyBoardList }">
+					<%-- 댓글 1개에 대한 제어(대댓글 작성 폼 표시, 댓글 제거)를 위한 id 값 지정 --%>
+					<%-- 각 댓글(tr 태그)별 고유 id 생성하기 위해 댓글 번호를 id 에 조합 --%>
+				<tr id="replyTr_${tinyReplyBoard.reply_num }">
+					<td class="replyContent">
+						${tinyReplyBoard.reply_content }
+						<%-- 세션 아이지 존재할 경우 대댓글 작성 이미지(reply-icon.png) 추가 --%>
+						<c:if test="${not empty sessionScope.sId }">
+							<%-- 대댓글 작성 아이콘 클릭 시 자바스크립트 함수 reReplyWriteForm() 호출 --%>
+							<%-- 파라미터 : 댓글 번호, 댓글 참조글번호, 댓글 들여쓰기레벨, 댓글 순서번호 --%>
+							<a href="javascript:reReplyWriteForm(${tinyReplyBoard.reply_num }, ${tinyReplyBoard.reply_re_ref }, ${tinyReplyBoard.reply_re_lev }, ${tinyReplyBoard.reply_re_seq })"> <%-- 하이퍼링크의 기본 기능으로 이동 --%>
+								<img src="${pageContext.request.contextPath }/resources/images/reply-icon.png">
+							</a>
+							<%-- 또한, 세션 아이디가 댓글 작성자와 동일하거나 관리자일 경우 --%>
+							<%-- 댓글 삭제이미지(delete-icon.png) 추가 --%>
+							<c:if test="${sessionScope.sId eq tinyReplyBoard.reply_name or sessionScope.sId eq 'admin' }">
+								<%-- 대댓글 작성 아이콘 클릭 시 자바스크립트 함수 confirmReplyDelete() 호출 --%>
+								<%-- 파라미터 : 댓글 번호 --%>
+							<a href="javascript:void(0)" onclick="confirmReplyDelete(${tinyReplyBoard.reply_num })"> <%-- void(0)으로 하이퍼링크를 막고 onclick 이벤트로 이동 --%>
+								<img src="${pageContext.request.contextPath }/resources/images/delete-icon.png">
+							</a>
+							</c:if>
+						</c:if>
+					</td>
+					<td class="replyWriter">${tinyReplyBoard.reply_name }</td>
+					<td class="replyDate">
+<%-- 						${tinyReplyBoard.reply_date } --%>
+						<%-- 파싱은 문자열을 객체로 변환하는것이고 포맷은 객체를 문자열로 변환하는 것이다. --%>
+						<%--
+						만약, 테이블 조회 결과를 Map 타입으로 저장 시 날짜 및 시각 데이터가
+						JAVA 8 부터 지원하는 LocalXXX 타입으로 관리된다! (ex. LocalDate, LocalTime, LocalDateTime)
+						=> 일반 Date 타입에서 사용하는 형태로 파싱 후 다시 포맷 변경하는 작업 필요 
+						=> JSTL fmt 라이브러리의 <fmt:parseDate> 태그 활용하여 파싱 후
+						   <fmt:formatDate> 태그 활용하여 포맷팅 수행
+						=> 1) <fmt:parseDate>
+						      var : 파싱 후 해당 날짜를 다룰 객체명
+						      value : 파싱될 대상 날짜 데이터
+						      pattern : 파싱 대상 날짜 데이터의 형식(이 때, 시각을 표시하는 문자 T 는 단순 문자로 취급하기 위해 'T' 로 표기)
+						      type : 대상 날짜 파싱 타입(time : 시각, date : 날짜, both : 둘 다)
+						   2) <fmt:formatDate>
+						      value : 출력(포맷팅)할 날짜 데이터
+						      pattern : 포맷팅 할 날짜 형식
+						--%>
+						<fmt:parseDate var="parsedReplyDate" value="${tinyReplyBoard.reply_date }" pattern="yyyy-MM-dd'T'HH:mm" type="both" />						 
+						<fmt:formatDate value="${parsedReplyDate }" pattern="MM-dd HH:mm"/>
+					</td>
+				</tr>
+			</c:forEach>
+			</table>
+		</div>
 	</section>
 </body>
 </html>
