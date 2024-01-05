@@ -58,4 +58,11 @@ public interface BoardMapper {
 	// 댓글 삭제 작업
 	int deleteTinyReplyBoard(Map<String, String> map);
 
+	// 기존 댓글들의 순서 조정
+	void updateTinyReplyBoardSeq(Map<String, String> map);
+	
+	// 대댓글 작성 작업
+	int insertTinyReReplyBoard(Map<String, String> map);
+
+
 }

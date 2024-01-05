@@ -21,19 +21,68 @@
 	
 	// 대댓글 작성 아이콘 클릭 시
 	function reReplyWriteForm(reply_num, reply_re_ref, reply_re_lev, reply_re_seq) {
-		console.log(reply_num, reply_re_ref, reply_re_lev, reply_re_seq);
-// 		$.ajax({
-// 			url: "",
-// 			data: {
-// 				reply_num:reply_num,
-// 				reply_re_ref: reply_re_ref,
-// 				reply_re_lev: reply_re_lev,
-// 				reply_re_seq: reply_re_seq
-// 			},
-// 			success: function(reReply) {
-				
-// 			}
-// 		});
+// 		console.log(reply_num, reply_re_ref, reply_re_lev, reply_re_seq);
+
+		// 기존에 존재하는 대댓글 입력폼이 있을 경우 해당 폼 요소 제거(tr 태그 제거)
+		// => "reReplyTr" id 선택자 활용
+		$("#reReplyTr").remove();
+
+		// 지정한 댓글 아래쪽에 대댓글 입력폼 표시
+		// => 댓글 지정하기 위해 댓글 tr 태그의 id 값 활용 - $("#replyTr_" + reply_num)
+		// => 자정한 댓글 아래쪽에 댓글 입력폼 표시를 위래 after() 메서드 활용
+		$("#replyTr_" + reply_num).after(
+			'<tr id="reReplyTr">'
+			+'	<td colspan="3">'
+			+'		<form action="BoardTinyReReplyWrite" method="post" id="reReplyForm">'
+			+'			<input type="hidden" name="board_num" value="${board.board_num }">'
+			+'			<input type="hidden" name="reply_name" value="${sessionScope.sId }">'
+			+'			<input type="hidden" name="reply_num" value="' + reply_num + '">'
+			+'			<input type="hidden" name="reply_re_ref" value="' + reply_re_ref + '">'
+			+'			<input type="hidden" name="reply_re_lev" value="' + reply_re_lev + '">'
+			+'			<input type="hidden" name="reply_re_seq" value="' + reply_re_seq + '">'
+			+'			<textarea id="reReplyTextarea" name="reply_content"></textarea>'
+			+'			<input type="button" value="댓글쓰기" id="reReplySubmit" onclick="reReplyWrite()">'
+			+'		</form>'
+			+'	</td>'
+			+'</tr>'
+		);
+	}
+	
+	// 대댓글 작성 요청(AJAX)
+	function reReplyWrite() {
+		// 대댓글 입력항목(textarea) 체크
+		if($("#reReplyTextarea").val() == "") {
+			alert("내용 입력 필수!");
+			$("#reReplyTextarea").focus();
+			return;
+		}
+		
+		// "BoardTinyReReplyWrite" 서블릿 주소 요청 - AJAX
+		// => 요청메서드 : POST, 응답 데이터 타입 : "text"
+		// => 폼 태그 내의 모든 데이터를 파라미터로 전달
+		$.ajax({
+			type: "POST",
+			url: "BoardTinyReReplyWrite",
+			data: $("#reReplyForm").serialize(), // 해당 폼의 모든 입력 요소(hidden 포함) 파라미터화
+			dataType: "text",
+			success: function(result) {
+				// 대댓글 등록 요청 결과 처리
+				// => 성공 시 화면 갱신, 실패 시 오류 메세지 출력
+				if(result == "true") {
+					location.reload(); // 페이지 갱신(POST 방식일 시 전달받은 데이터 유지,브라우저 갱신 이력 남지 않음)
+// 					location.href = location.href; // 현재페이지를 다시 할당해준다.
+// 					location.replace(location.href);
+				} else {
+					alert("댓글 삭제 실패!");
+				}
+			},
+			error: function() {
+				alert("요청 실패!");
+			}
+			
+		});
+		
+		
 	}
 	
 	// 댓글 삭제 아이콘 클릭 시
@@ -66,6 +115,8 @@
 		});
 		}
 	}
+	
+	
 </script>
 <!-- 외부 CSS 파일(css/default.css) 연결하기 -->
 <link href="${pageContext.request.contextPath }/resources/css/default.css" rel="stylesheet" type="text/css">
@@ -162,6 +213,22 @@
 	
 	.replyDate {
 		width: 100px;
+	}
+	
+	/* 대댓글 */
+	#reReplyTextarea {
+		width: 350px;
+		height: 20px;
+		vertical-align: middle;
+		resize: none;
+	}
+	
+	#reReplySubmit {
+		width: 65px;
+		height: 25px;
+		vertical-align: middle;
+		resize: none;
+		font-size: 12px;
 	}
 </style>
 </head>
@@ -287,6 +354,8 @@
 					<%-- 각 댓글(tr 태그)별 고유 id 생성하기 위해 댓글 번호를 id 에 조합 --%>
 				<tr id="replyTr_${tinyReplyBoard.reply_num }">
 					<td class="replyContent">
+						<%-- 대댓글 구분을 위해 reply_re_lev 값이 0 보다 크면 들여쓰기(공백2칸) --%>
+						<c:forEach var="i" begin="1" end="${tinyReplyBoard.reply_re_lev }">&nbsp;&nbsp;</c:forEach>
 						${tinyReplyBoard.reply_content }
 						<%-- 세션 아이지 존재할 경우 대댓글 작성 이미지(reply-icon.png) 추가 --%>
 						<c:if test="${not empty sessionScope.sId }">
