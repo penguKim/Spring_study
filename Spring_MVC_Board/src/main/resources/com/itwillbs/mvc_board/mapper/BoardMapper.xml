@@ -328,17 +328,18 @@
 	-->
 	<insert id="insertTinyReReplyBoard">
 		<!-- 새 댓글 번호 계산 -->
-		<!-- 대댓글을 순서대로 나열하기 위해 기존 댓글 그룹에서 가장 큰 순서번호 조회 추가 -->
+		<!-- 대댓글을 순서대로 나열하기 위해 기존 댓글 그룹에서 가장 큰 순서번호 조회 추가-->
 <!-- 		<selectKey keyProperty="reply_num" resultType="int" order="BEFORE"> -->
 <!-- 			SELECT IFNULL(MAX(reply_num), 0) -->
 <!-- 			FROM tiny_reply_board -->
 <!-- 		</selectKey> -->
-
-		<!-- 2개 이상의 값을 조회하여 새로운 Map 객체에 저장(이름을 result 로 지정) -->
-		<!--
-		기존 reply_num의 가장 큰 
-		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		
+		<!--  -->
+		<!-- 
+		2개 이상의 값을 조회하여 새로운 Map 객체에 저장(이름을 result 로 지정)
+		=> 기존 reply_num 의 가장 큰 값 조회 시에는 WHERE 절이 불필요하지만
+		   추가되는 reply_re_seq 의 가장 큰 값 조회 시에는 WHERE 절이 필요하다
+		   따라서, 별도의 서브쿼리를 사용하여 조건을 추가해야함
 		-->
 		<selectKey keyProperty="result" resultType="map" order="BEFORE">
 			SELECT 
@@ -353,7 +354,7 @@
 			FROM tiny_reply_board
 		</selectKey>
 		
-		<!-- selec~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+		<!-- selectKey 를 통해 조회된 복수개의 값은 result 라는 이름으로 관리됨 -->
 		INSERT INTO tiny_reply_board
 		VALUES(
 			#{result.reply_num} + 1       -- reply_num(selectKey 로 조회된 값 활용)
