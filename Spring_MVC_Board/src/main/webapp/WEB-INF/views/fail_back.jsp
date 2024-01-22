@@ -3,6 +3,14 @@
 <script>
 	// 컨트롤러에서 전달받은 오류메세지를 EL 을 통해 접근하여 alert() 함수로 출력
 	alert("${msg}");
-	// 이전 페이지로 돌아가기
-	history.back();
+	// Model 객체로 전달받은 "isClose" 값이 true 일 경우 현재 창 종료, 아니면 이전페이지로 돌아가기
+	// => 단, Model 객체에 저장된 실제 데이터타입과 상관없이 자바스크립트에서 문자열로 처리
+	// 자바스크립트의 if문은 값이 있으면 true로 작동한다.
+	if("${isClose}" == "true") { // 만약, "true" 일 때만 문자열 전달 시 '== "true"' 생략해도 된다.
+// 		window.opener를 사용하면 현재 페이지 기준으로 부모창에 적용한다.
+		window.close();		
+	} else {
+		// 이전 페이지로 돌아가기
+		history.back();
+	}
 </script>
