@@ -180,7 +180,38 @@ public class FintechController {
 		return "fintech/fintech_account_detail";
 	}
 	
-	
+	// 2.5.1. 출금이체 API
+	@PostMapping("BankPayment")
+	public String bankPayment(@RequestParam Map<String, String> map, HttpSession session, Model model) {
+//		logger.info(">>>>>>>>>>> payment : " + map);
+		
+		String id = (String)session.getAttribute("sId");
+		// 세션아이디가 null 일 경우 로그인 페이지 이동 처리
+		// 엑세스토큰이 null 일 경우 "계좌 인증 필수!" 메세지 출력 후 "forward.jsp" 페이지 포워딩
+		if(id == null) {
+			model.addAttribute("msg", "로그인 필수!");
+			model.addAttribute("targetURL", "MemberLoginForm");
+			return "forward";
+		} else if(session.getAttribute("access_token") == null) {
+			model.addAttribute("msg", "계좌 인증 필수!");
+			model.addAttribute("targetURL", "FintechMain");
+			return "forward";
+		}	
+		
+		// 요청에 필요한 엑세스토큰과 세션 아이디를 Map 객체에 추가
+		map.put("access_token", (String)session.getAttribute("access_token"));
+		map.put("id", id);
+		
+		// BankService - requestWithdraw() 메서드 호출하여 상품 구매에 대한 지불(출금이체) 요청
+		// => 파라미터 : Map 객체   리턴타입 : Map<String, Object>(withdrawResult)
+		Map<String, Object> withdrawResult = bankService.requestWithdraw(map);
+		logger.info(">>>>>>> withdrawResult : " + withdrawResult);
+		// 요청 결과를 model 객체에 저장
+		model.addAttribute("withdrawResult", withdrawResult);
+		
+		return "fintech/fintech_payment_result";
+		
+	}
 	
 }
 

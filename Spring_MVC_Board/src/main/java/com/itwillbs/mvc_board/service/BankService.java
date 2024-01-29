@@ -65,7 +65,14 @@ public class BankService {
 
 	// 계좌 상세정보 조회 요청
 	public Map<String, Object> requestAccountDetail(Map<String, String> map) {
+		// BankApiClient - requestAccountDetail()
 		return bankApiClient.requestAccountDetail(map);
+	}
+
+	// 출금 이체 요청
+	public Map<String, Object> requestWithdraw(Map<String, String> map) {
+		// BankApiClient - requestWithdraw()
+		return bankApiClient.requestWithdraw(map);
 	}
 
 }

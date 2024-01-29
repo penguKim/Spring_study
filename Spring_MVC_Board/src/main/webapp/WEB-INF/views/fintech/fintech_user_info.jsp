@@ -37,7 +37,7 @@
 				<tr>
 					<td>${account.account_alias }</td>
 					<td>${account.account_num_masked }</td>
-					<td>${account.bank_name }(${user.bank_code_std })</td>
+					<td>${account.bank_name }(${account.bank_code_std })</td>
 					<td>${account.account_holder_name }</td>
 					<td>${account.fintech_use_num }</td>
 					<td>
