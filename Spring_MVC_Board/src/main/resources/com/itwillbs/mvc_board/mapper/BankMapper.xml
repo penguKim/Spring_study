@@ -48,6 +48,13 @@
 		FROM bank_user_info
 		WHERE id = #{id}
 	</select>
+	
+	<!-- 관리자 엑세스토큰 조회 요청 -->
+	<select id="selectAdminAccessToken" resultType="string">
+		SELECT access_token
+		FROM bank_user_info
+		WHERE id = 'admin'
+	</select>
 </mapper>
 
 

@@ -39,6 +39,12 @@
 		<c:if test="${not empty sessionScope.access_token }">
 			<input type="button" value="핀테크 사용자 정보 조회" onclick="location.href='FintechUserInfo'"> 
 		</c:if>
+		<%-- 관리자에 대한 oob 권한을 갖는 엑세스토큰 발급 요청 --%>
+		<c:if test="${not empty sessionScope.sId and sessionScope.sId eq 'admin' }">
+			<input type="button" value="관리자 엑세스토큰 발급 요청(oob)" onclick="location.href='FintechAdminAccessToken'"> 
+		</c:if>
+		
+		
 	</article>
 	<footer>
 		<%-- 회사소개 표시 영역(bottom.jsp 페이지 삽입) --%>
