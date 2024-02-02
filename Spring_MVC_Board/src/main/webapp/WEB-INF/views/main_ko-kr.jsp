@@ -23,6 +23,7 @@
 		<h3><a href="BoardWriteForm">글쓰기</a></h3>
 		<h3><a href="BoardList">글목록</a></h3>
 		<h3><a href="FintechMain">핀테크 테스트</a></h3>
+		<h3><a href="ChatMain">채팅 테스트</a></h3>
 	</article>
 	<footer>
 		<%-- 회사소개 표시 영역(bottom.jsp 페이지 삽입) --%>

@@ -14,7 +14,8 @@
 	<!-- Enables the Spring MVC @Controller programming model -->
 	<annotation-driven />
 	<!-- >>>>>>>> 트랜잭션 설정 추가 <<<<<<<< -->
-	<tx:annotation-driven/>
+	<!--  트랜잭션 처리에 사용되는 tx:annotation-driven 태그는 database-context.xml 파일에 합쳐짐  -->
+	<!--  	<tx:annotation-driven/>  -->
 
 	<!-- Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the ${webappRoot}/resources directory -->
 	<!-- 외부 접근이 가능한 js, css, 이미지 등을 넣어두는 resources 경로 지정 -->
@@ -44,5 +45,7 @@
 	
 	
 	<context:component-scan base-package="com.itwillbs.mvc_board" />
+	
+	<context:property-placeholder location="classpath:/config/appdata.properties"/>	
 	
 </beans:beans>

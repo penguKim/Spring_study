@@ -8,6 +8,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -27,6 +28,29 @@ public class BankApiClient {
 	@Autowired
 	private BankValueGenerator bankValueGenerator; 
 	
+	// ------------------------------------------------------------
+	// 오픈뱅킹 API 서비스 요청 시 사용할 속성값을
+	// appdata.properties 파일로부터 가져와서 멤버변수에 저장하기
+	// => @Value 어노테이션 활용
+	//    기본문법 : @Value("${속성명}")
+	//				 private 데이터타입 멤버변수명
+	// => 단, 반드시 해당 속성들이 저장된 파일을
+	//    설정 파일 내에서 다음과 같이 지정해야함
+	//    <context:property-placeholder location="classpath:/config/appdata.properties"/>
+	@Value("${client_id}")
+	private String client_id;
+	
+	@Value("${client_secret}")
+	private String client_secret;
+	
+	@Value("${base_url}")
+	private String base_url;
+	
+	@Value("${cntr_account_num}")
+	private String cntr_account_num; // 약정계좌
+	
+	// ------------------------------------------------------------
+	
 	private static final Logger logger = LoggerFactory.getLogger(BankApiClient.class);
 
 	// 2.1.2. 토큰발급 API - 사용자 토큰 발급 API 요청
@@ -36,7 +60,8 @@ public class BankApiClient {
 		// POST 방식 요청을 수행하기 위해 URL 정보 생성
 		// 자기자신을 리턴하며 객체를 만들어나가는 빌더 패턴
 		URI uri = UriComponentsBuilder
-					.fromUriString("https://testapi.openbanking.or.kr/oauth/2.0/token") // 기본 주소
+					.fromUriString(base_url) // 기본 주소
+					.path("/oauth/2.0/token") // 상세 주소(path() 메서드 여러개 호출하여 분리도 가능)
 					.encode()
 					.build() // UriComponents 객체 생성
 					.toUri();
@@ -48,8 +73,12 @@ public class BankApiClient {
 		LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
 		// LinkedMultiValueMap 객체의 add() 메서드를 호출하여 파라미터 전달(키, 값 형식으로 설정)
 		parameters.add("code", authResponse.get("code")); // 인증코드(인증코드 요청을 통해 응답받은 데이터)
-		parameters.add("client_id", "4066d795-aa6e-4720-9383-931d1f60d1a9");
-		parameters.add("client_secret", "36b4a668-94ba-426d-a291-771405e498e4");
+//		parameters.add("client_id", "4066d795-aa6e-4720-9383-931d1f60d1a9");
+		// -------------------------------------------------------------
+		// appdata.properties 파일 내에 저장되어 있는 속성값 활용
+		parameters.add("client_id", client_id);
+		parameters.add("client_secret", client_secret);
+		// -------------------------------------------------------------
 		parameters.add("redirect_uri", "http://localhost:8081/mvc_board/callback");
 		parameters.add("grant_type", "authorization_code");
 		
@@ -109,7 +138,7 @@ public class BankApiClient {
 		// 3. 요청에 필요한 URI 정보 생성
 		//    => GET 방식 요정에 사용할 파라미터는 UriComponentsBuilder 클래스의 queryParam() 메서드 사용
 		URI uri = UriComponentsBuilder
-					.fromUriString("https://testapi.openbanking.or.kr/v2.0/user/me")
+					.fromUriString(base_url + "/v2.0/user/me")
 					.queryParam("user_seq_no", map.get("user_seq_no")) // 파라미터(사용자번호)
 					.encode() // 파라미터에 대한 인코딩 처리
 					.build() // UriComponents 객체 생성
@@ -160,7 +189,7 @@ public class BankApiClient {
 		// 3. 요청에 필요한 URI 정보 생성
 		//    => GET 방식 요정에 사용할 파라미터는 UriComponentsBuilder 클래스의 queryParam() 메서드 사용
 		URI uri = UriComponentsBuilder
-					.fromUriString("https://testapi.openbanking.or.kr/v2.0/account/balance/fin_num")
+					.fromUriString(base_url + "/v2.0/account/balance/fin_num")
 					.queryParam("bank_tran_id", bank_tran_id) // 거래고유번호(참가기관)
 					.queryParam("fintech_use_num", map.get("fintech_use_num")) // 핀테크이용번호
 					.queryParam("tran_dtime", tran_dtime) // 요청일시
@@ -205,7 +234,7 @@ public class BankApiClient {
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		
 		// 2. 요청에 필요한 URL 정보 생성 => 문자열로 바로 지정
-		String url = "https://testapi.openbanking.or.kr/v2.0/transfer/withdraw/fin_num";
+		String url = base_url + "/v2.0/transfer/withdraw/fin_num";
 		
 		// 3. 요청 파라미터를 JSON 형식 데이터로 생성(기본 라이브러리 org.json 활용)
 		// 3.1) 출금 정보를 저장할 JSONObject 객체 생성
@@ -217,7 +246,7 @@ public class BankApiClient {
 		// ---------- 핀테크 이용기관 정보 ----------
 		// 약정계좌번호를 약정계좌관리 메뉴의 "출금계좌" 항목에 등록 필수!
 		jo.put("cntr_account_type", "N"); // 약정 계좌/계정 구분("N" : 계좌, "C" : 계정 => N 고정)
-		jo.put("cntr_account_num", "23062003999");
+		jo.put("cntr_account_num", cntr_account_num);
 		jo.put("dps_print_content", map.get("id")); // 입금계좌인자내역(결제 요청 사용자 아이디 확인으로 활용)
 		
 		// ---------- 요청 고객(출금 대상) 정보 ----------
@@ -237,7 +266,7 @@ public class BankApiClient {
 		// 이체용도 필드값이 송금(“TR”) 및 결제(“ST”)인 경우 이 값을 설정한다.
 		jo.put("recv_client_name", "이연태"); // 
 		jo.put("recv_client_bank_code", "004"); //
-		jo.put("recv_client_account_num", "23062003999"); // 
+		jo.put("recv_client_account_num", cntr_account_num); // 
 		
 		logger.info(">>>>> 출금 이체 요청 JSON 데이터" + jo.toString());
 		
@@ -280,7 +309,7 @@ public class BankApiClient {
 		// POST 방식 요청을 수행하기 위해 URL 정보 생성
 		// 자기자신을 리턴하며 객체를 만들어나가는 빌더 패턴
 		URI uri = UriComponentsBuilder
-					.fromUriString("https://testapi.openbanking.or.kr/oauth/2.0/token") // 기본 주소
+					.fromUriString(base_url + "/oauth/2.0/token") // 기본 주소
 					.encode()
 					.build() // UriComponents 객체 생성
 					.toUri();
@@ -291,8 +320,8 @@ public class BankApiClient {
 		// 요청에 필요한 파라미터를 LinkedMultiValueMap 객체 활용하여 설정
 		LinkedMultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
 		// LinkedMultiValueMap 객체의 add() 메서드를 호출하여 파라미터 전달(키, 값 형식으로 설정)
-		parameters.add("client_id", "4066d795-aa6e-4720-9383-931d1f60d1a9");
-		parameters.add("client_secret", "36b4a668-94ba-426d-a291-771405e498e4");
+		parameters.add("client_id", client_id);
+		parameters.add("client_secret", client_secret);
 		parameters.add("scope", "oob");
 		parameters.add("grant_type", "client_credentials");
 		
@@ -349,7 +378,7 @@ public class BankApiClient {
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		
 		// 2. 요청에 필요한 URL 정보 생성 => 문자열로 바로 지정
-		String url = "https://testapi.openbanking.or.kr/v2.0/transfer/deposit/fin_num";
+		String url = base_url + "/v2.0/transfer/deposit/fin_num";
 		
 		// 3. 요청 파라미터를 JSON 형식 데이터로 생성(기본 라이브러리 org.json 활용)
 		// 3-1) 단건이체(1건의 입금 이체) 정보(현재는 무조건 단건이체만 가능)를 저장할 JSONObject 객체 생성
@@ -376,7 +405,7 @@ public class BankApiClient {
 		// ---------- 핀테크 이용기관 정보 ----------
 		// 약정계좌번호를 약정계좌관리 메뉴의 "출금계좌" 항목에 등록 필수!
 		jo.put("cntr_account_type", "N"); // 약정 계좌/계정 구분("N" : 계좌, "C" : 계정 => N 고정)
-		jo.put("cntr_account_num", "23062003999");
+		jo.put("cntr_account_num", cntr_account_num);
 		jo.put("wd_pass_phrase", "NONE"); // 입금이체용 암호문구(테스트 시 "NONE" 설정)
 		jo.put("wd_print_content", map.get("id") + "_환불"); // 출금계좌인자내역(결제 요청 사용자 아이디 확인으로 활용)
 		jo.put("name_check_option", "on"); // 수취인성명 검증 여부(on 또는 생략 : 검증, off : 미검증)
@@ -439,7 +468,7 @@ public class BankApiClient {
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		
 		// 2. 요청에 필요한 URL 정보 생성 => 문자열로 바로 지정
-		String url = "https://testapi.openbanking.or.kr/v2.0/transfer/withdraw/fin_num";
+		String url = base_url + "/v2.0/transfer/withdraw/fin_num";
 		
 		// 3. 요청 파라미터를 JSON 형식 데이터로 생성(기본 라이브러리 org.json 활용)
 		// 3.1) 출금 정보를 저장할 JSONObject 객체 생성
@@ -451,7 +480,7 @@ public class BankApiClient {
 		// ---------- 핀테크 이용기관 정보 ----------
 		// 약정계좌번호를 약정계좌관리 메뉴의 "출금계좌" 항목에 등록 필수!
 		jo.put("cntr_account_type", "N"); // 약정 계좌/계정 구분("N" : 계좌, "C" : 계정 => N 고정)
-		jo.put("cntr_account_num", "23062003999");
+		jo.put("cntr_account_num", cntr_account_num);
 		jo.put("dps_print_content", map.get("req_client_name")); // 입금계좌인자내역(결제 요청 사용자 아이디 확인으로 활용)
 		
 		// ---------- 요청 고객(출금 대상) 정보 ----------
@@ -526,7 +555,7 @@ public class BankApiClient {
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		
 		// 2. 요청에 필요한 URL 정보 생성 => 문자열로 바로 지정
-		String url = "https://testapi.openbanking.or.kr/v2.0/transfer/deposit/fin_num";
+		String url = base_url + "/v2.0/transfer/deposit/fin_num";
 		
 		// 3. 요청 파라미터를 JSON 형식 데이터로 생성(기본 라이브러리 org.json 활용)
 		// 3-1) 단건이체(1건의 입금 이체) 정보(현재는 무조건 단건이체만 가능)를 저장할 JSONObject 객체 생성
@@ -553,7 +582,7 @@ public class BankApiClient {
 		// ---------- 핀테크 이용기관 정보 ----------
 		// 약정계좌번호를 약정계좌관리 메뉴의 "출금계좌" 항목에 등록 필수!
 		jo.put("cntr_account_type", "N"); // 약정 계좌/계정 구분("N" : 계좌, "C" : 계정 => N 고정)
-		jo.put("cntr_account_num", "23062003999");
+		jo.put("cntr_account_num", cntr_account_num);
 		jo.put("wd_pass_phrase", "NONE"); // 입금이체용 암호문구(테스트 시 "NONE" 설정)
 		jo.put("wd_print_content", map.get("recv_client_name")); // 출금계좌인자내역(수신인 성명)
 		jo.put("name_check_option", "on"); // 수취인성명 검증 여부(on 또는 생략 : 검증, off : 미검증)
