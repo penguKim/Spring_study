@@ -15,4 +15,12 @@
 	</websocket:handlers>
 	<!-- 2) bean 태그를 통해 매핑할 클래스 지정 -->
 	<bean id="wsHandler" class="com.itwillbs.mvc_board.chat.MyWebSocketHandler" />
+	
+	<!-- 1) websocket:handlers 태그를 통해 매핑할 주소 지정 및 매핑 클래스 연결 -->
+	<websocket:handlers allowed-origins="*">
+		<!-- websocket:mapping 태그를 활용하여 매핑 URL 와 매핑 클래스 연결 수행 -->
+		<websocket:mapping path="/echo2" handler="wsHandler2"/>
+	</websocket:handlers>
+	<!-- 2) bean 태그를 통해 매핑할 클래스 지정 -->
+	<bean id="wsHandler2" class="com.itwillbs.mvc_board.chat.MyWebSocketHandler2" />
 </beans>

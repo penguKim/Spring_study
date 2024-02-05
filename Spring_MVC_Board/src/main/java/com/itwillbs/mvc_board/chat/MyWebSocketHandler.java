@@ -18,9 +18,12 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 	
 	// 접속한 클라이언트(사용자)들의 정보를 관리하기 위한 Map 객체 생성
 	// key : 웹소켓 세션아이디(문자열)   value : 웹소켓 세션 객체(WebSocketSession)
-	// => HashMap 구현제 대신 ConcurrentHashMap 타입 사용 시 멀티쓰레트 환경에서
+	// => HashMap 구현제 대신 ConcurrentHashMap 타입 사용 시 멀티쓰레드 환경에서
 	//    락(Lock)을 통해 안전하게 데이터 관리
-	private Map<String, WebSocketSession> users = new ConcurrentHashMap<String, WebSocketSession>();
+	private Map<String, WebSocketSession> wsSessions = new ConcurrentHashMap<String, WebSocketSession>();
+	
+	// 웹소켓 세션아이디와 사용자 아이디 정보를 관리하기 위한 Map 객체ㅉ
+	private Map<String, String> users = new ConcurrentHashMap<String, String>();
 	
 	
 	// WebSocket 객체 생성(연결)될 때 자동으로 호출되는 메서드
@@ -35,8 +38,8 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 		// => 모든 접속자의 세션을 하나의 객체로 모으기
 		// => 이 때, 사용자의 회원 아이디는 현재 메서드에서 접근이 불가능하므로
 		//    세션아이디를 구분자로 활용해야함
-		users.put(session.getId(), session);
-		System.out.println("접속 클라이언트 목록 : " + users);
+		wsSessions.put(session.getId(), session);
+		System.out.println("접속 클라이언트 목록 : " + wsSessions);
 		
 	}
 
@@ -71,6 +74,13 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 //			System.out.println(session.getId() + " : 입장!");
 			// ChatMessage 객체의 메세지를 "XXX 님이 입장하셨습니다" 로 설정(변경)
 			chatMessage.setMessage(chatMessage.getNickname() + " 님이 입장하셨습니다.");
+			
+			// --------------------------------------------------------------
+			// Map 객체(users)에 현재 웹소켓 세션 ID와 전달받은 닉네임 저장
+			users.put(session.getId(), chatMessage.getNickname());
+			System.out.println("저장한 유저 닉네임 : " + users);
+			// --------------------------------------------------------------
+			
 		} else if(chatMessage.getType().equals(ChatMessage.TYPE_LEAVE)) { // 퇴장
 //			System.out.println(session.getId() + " : 퇴장!");
 			chatMessage.setMessage(chatMessage.getNickname() + " 님이 퇴장하셨습니다.");
@@ -86,7 +96,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 		// 클라이언트 목록(Map 객체 - users)에 저장된 모든 세션에게 메세지 전송
 		// => Map 객체의 values() 메서드를 통해 모든 값들을 향상된 for문으로 반복하여
 		//    WebSocketSession 객체를 하나씩 꺼내지
-		for(WebSocketSession userSession : users.values()) {
+		for(WebSocketSession userSession : wsSessions.values()) {
 			// 각 WebSocketSession 객체를 통해 메세지 전송 
 			// 단, 자신을 제외한 나머지 세션에만 전송(session 과 userSession 의 아이디 비교
 			if(!session.getId().equals(userSession.getId())) {
@@ -104,6 +114,13 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 	@Override
 	public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
 		System.out.println("웹소켓 연결 해제됨!(afterConnectionClosed)");
+		
+		// 채팅방 나갈 때 Map 객체에서 해당 세션 제거
+		// => 클라이언트 정보가 저장된 Map 객체에서 현재 종료 요청이 발생한 세션 객체를 제저
+		// => Map 객체의 remove() 메서드 호출하여 전달받은 세션 아이디를 키로 지정하여 삭제
+		System.out.println("삭제할 유저 세션 : " + session.getId());
+		wsSessions.remove(session.getId());
+		System.out.println("삭제 후 클라이언트 목록 : " + wsSessions);
 	}
 
 

@@ -9,50 +9,66 @@
 <!-- 외부 CSS 파일(css/default.css) 연결하기 -->
 <!-- <link href="./css/default.css" rel="stylesheet" type="text/css"> -->
 <style type="text/css">
-	#chatArea {
+	/* 채팅방 전체 영역 */
+	#chatRoomArea {
 		width: 650px;
-		height: 350px;
+		height: 600px;
 		border: 1px solid black;
 		margin-top: 20px;
 		margin-bottom: 20px;
 		/* 지정한 영역 크기보다 컨텐츠 양이 더 많을 경우 수직방향 스크롤 생성 */
 		overflow-y: auto;
+		display: inline-block;
+	}
+	/* 채팅방 1개 영역 */
+	.chatRoom {
+		margin-right: 10px;
+		margin-bottom: 20px;
+		display: inline-block;
+		border: 1px solid black;
 	}
 	
-	#chatMessageArea {
+	/* 채팅 메세지 표시 영역 */
+	.chatMessageArea {
 		width: 300px;
 		height: 200px;
+		border: 1px solid gray;
+		overflow-y: auto;
+	}
+	
+	/* 채팅방 목록 전체 영역 */
+	#chatRoomListArea {
+		width: 300px;
+		height: 600px;
 		border: 1px solid black;
 		margin-top: 20px;
 		margin-bottom: 20px;
 		/* 지정한 영역 크기보다 컨텐츠 양이 더 많을 경우 수직방향 스크롤 생성 */
 		overflow-y: auto;
-		font-size: 14px;
 		display: inline-block;
 	}
 	
 	
-	#chatUserListArea {
-		width: 200px;
-		height: 200px;
-		border: 1px solid black;
-		margin-top: 20px;
-		margin-bottom: 20px;
-		/* 지정한 영역 크기보다 컨텐츠 양이 더 많을 경우 수직방향 스크롤 생성 */
-		overflow-y: auto;
-		font-size: 14px;
-		display: inline-block;
-	}
 </style>
 <%-- EL 을 활용하여 컨텍스트경로를 얻어와서 절대주소처럼 사용 가능 --%>
 <link href="${pageContext.request.contextPath }/resources/css/default.css" rel="stylesheet" type="text/css">
 <script src="${pageContext.request.contextPath }/resources/js/jquery-3.7.1.js"></script>
 <script type="text/javascript">
 	$(function() {
+		// 채팅 페이지 접속 시 웹소켓 연결 수행
+		connect();
+			
 		// 입장, 나가기, 전송 버튼 클릭 이벤트 처리
 		// 입장
 		$("#btnJoin").on("click", function() {
-			connect();
+			// 상대방 아이디 미입력 시 오류메세지 출력 및 입력창 포커스 요청
+			if($("#receiver_id").val() == "") {
+				alert("상대방 아이디 입력 필수!");
+				$("#receiver_id").focus();
+				return;
+			}
+			
+			startChat();
 		});
 		
 		// 나가기
@@ -60,39 +76,15 @@
 			disconnect();	
 		});
 		
-		// 전송
-		$("#btnSend").on("click", function() {
-			sendMessage();	
-		});
-		
-		// 채팅메세지 입력창 키 누를때마다 이벤트 처리
-		$("#chatMsg").keypress(function(event) { // 누른 키의 정보가 event 매개변수로 전달됨
-			// 누른 키의 코드값(keyCode) 가져와서 엔터키(keyCode 값 '13')일 때
-			// 메세지 전송을 위한 sendMessage() 함수 호출
-			let keyCode = event.keyCode;
-			if(keyCode == "13") {
-				// 입력창의 채팅메세지가 널스트링이 아닐 경우에만 sendMessage() 호출
-				if($("#chatMsg").val() != "") {
-					sendMessage();
-				}
-			}
-		});
-		
-		// 처음 로딩 시 입장 버튼은 활성화, 나가기 버튼은 비활성화
-		$("#btnJoin").prop("disabled", false);
-		$("#btnQuit").prop("disabled", true);
 	});
 	
 	// =========================================================
 	// 웹소켓 연결 요청
 	let ws; // 웹소켓 연결 시 웹소켓 객체를 저장할 변수 선언
-	let nickname; // 채팅방에서 사용할 닉네임을 저장할 변수 선언
+	let current_user_id; // 채팅방에서 사용할  사용자 아이디 저장 변수 선언
 	function connect() {
-// 		alert("connect");
-		
-		// 닉네임을 입력받아 변수에 저장(임시로 세션아이디 활용)
-		nickname = "${sessionScope.sId}";
-// 		alert("닉네임 : " + nickname);
+		// 사용자 세션 아이디 저장
+		current_user_id = "${sessionScope.sId}";
 
 		// 웹소켓 연결에 사용할 기본 주소 설정(ws 프로토콜 사용)
 		// => 보안을 위해서는 ws 대신 wss 사용해야한다
@@ -102,7 +94,8 @@
 		
 		// 웹소켓 요청(Handshake)
 		// => WebSocket 객체 생성(생성자 파라미터로 요청 주소 전달)
-		ws = new WebSocket(ws_base_url + "/echo");
+		// => 새로운 주소로 입장
+		ws = new WebSocket(ws_base_url + "/echo2");
 		// => 이 요청을 서버에서 처리하기 위해 매핑을 수행해야하는데
 		//    이 매핑은 컨트롤러가 아닌 xml 파일에서 설정 필요
 		//    (=> ws-context.xml 파일 만들어서 설정)
@@ -115,56 +108,40 @@
 		ws.onclose = onClose;
 		ws.onerror = onError;
 	}
+	
 	// =========================================================
-	// 웹소켓 연결 해제
-	function disconnect() {
-// 		alert("disconnect");
-		
-		// 입장 메세지를 상대방 채팅창에 표시하기 위해
-		// 입장 메세지(타입 ENTER, nickname, 메세지는 "")로 설정된 JSON 메세지를 서버로 전송
-		ws.send(getJSONString("LEAVE", nickname, ""));
-		// => 주의! 웹소켓 연결이 끊어지기 전에 먼저 작업 수행 필요
-		
-		// 채팅방 참여자 목록에서 닉네임(닉네임에 해당하는 ID 선택자 요소) 제거
-// 		$("#user_" + nickname).remove();
-		// 자신이 나간 채팅방의 참여자는 볼 필요가 없으므로 목록 전체 비우기
-		$("#chatUserListArea").empty();
-		
-		// Websocket 객체의 close() 메서드 호출하여 웹소켓 연결 종료
-		ws.close();
+	// 웹소켓(서버) 연결 시 open 이벤트 처리 메서드(채팅방 입장 버튼 클릭 시)
+	function onOpen() {
+		console.log("onOpen");
+		// 채팅 페이지 접속 시 웹소켓 연결 후 초기화 메세지 전송
+		// => 메세지타입(INIT), 사용자 아이디, 3개 널스트링
+		ws.send(getJSONString("INIT", current_user_id, "", "", ""));
 	}
 	
 	// =========================================================
+	// 상대방과의 채팅 시작(이미 채팅페이지 접속 시점에 웹소켓은 생성되어 있음)
+	function startChat() {
+		// 채팅 시작을 알리는 웹소켓 메세지 전송
+		//=> 타입(START), 사용자아이디, 상대방아이디, 나머지 2개 널스트링
+		ws.send(getJSONString("START", current_user_id, $("#receiver_id").val(), "", ""))
+	}
+		
+		
+	// =========================================================
 	// 웹소켓 서버로 메세지 전송
-	function sendMessage() {
-// 		alert("sendMessage");
-		// 메세지 입력창의 채팅 메세지 가져오기
-		let msg = $("#chatMsg").val();
+// 	function sendMessage() {
 		
-		// ----------------------------------------------------------------------
-		// 웹소켓 객체를 통해 메세지 전송을 수행할 send() 메서드 호출
-// 		ws.send(msg);
-		// => 웹소켓 핸들러 객체의 handleTextMessage() 메서드가 자동 호출됨
-		//    이 때 전송되는 메세지(msg)가 TextMessage 타입 파라미터로 전달됨
-		// ----------------------------------------------------------------------
-		// 전송할 메세지를 JSON 형식으로 변환하여 여러 정보를 함께 전송
-		ws.send(getJSONString("TALK", nickname, msg));
-		// ----------------------------------------------------------------------
-		
-		// 입력한 메세지를 자신의 채팅창에 출력하기 위해 appendMessage() 함수 호출하여 메세지 전달
-		appendMessage(msg);
-		
-		// 채팅 입력메세지 초기화 후 포커스 요청
-		$("#chatMsg").val("");
-		$("#chatMsg").focus();
-	}	
+// 	}	
 	
 	// 전송할 메세지 및 각종 정보를 JSON 타입 문자열로 변환하여 리턴하는 getJSONString() 함수 정의
-	function getJSONString(type, nickname, message) {
+	function getJSONString(type, current_user_id, receiver_id, room_id, message) {
 		// 전달받은 파라미터들을 하나의 객체로 결합하여 JSON 타입 문자열로 변환 후 리턴
+		// => 파라미터 : 메세지타입, 사용자아이디, 상대방아이디, 방번호, 메세지
 		let data = {
 				type : type,
-				nickname : nickname,
+				sender_id : current_user_id,
+				receiver_id : receiver_id,
+				room_id : room_id,
 				message : message
 		};
 		
@@ -183,32 +160,9 @@
 	}
 	
 	// =========================================================
-	// 웹소켓(서버) 연결 시 open 이벤트 처리 메서드(채팅방 입장 버튼 클릭 시)
-	function onOpen() {
-// 		appendMessage(">>> onOpen <<<");
-		appendMessage(">>> 채팅방에 입장하였습니다. <<<");
-		
-		ws.send(getJSONString("ENTER", nickname, ""));
-		
-		// --------------------------------------------------------------------
-		// 채팅방 참여자 목록에 자신의 닉네임(아이디)을 추가
-		$("#chatUserListArea").append("<div id='user_" + nickname + "'>" + nickname + "</div>");
-		// --------------------------------------------------------------------
-		
-		// 웹소켓 연결 완료 시 입장 버튼 비활성화, 나가기 버튼 활성화 상태 반대로 전환	
-		$("#btnJoin").prop("disabled", true);
-		$("#btnQuit").prop("disabled", false);
-	}
-	// =========================================================
 	// 서버로부터 메세지 수신 시 message 이벤트 처리 메서드
 	// => 파라미터로 MessageEvent 객체가 전달됨
 	function onMessage(event) {
-// 		appendMessage(">>> onMessage <<<");
-// 		console.log(event);
-
-		// MessageEvent 객체(event)의 data 속성에 전송된 메세지가 저장되어 있음
-// 		appendMessage(event.data);
-		
 		// 전달받은 데이터(event.data)가 JSON 타입 문자열로 전달되므로
 		// JSON.parse() 메서드를 통해 JSON 객체로 변환하여 접근
 		let data = JSON.parse(event.data);
@@ -234,33 +188,110 @@
 		} else if(data.type == "TALK") { // 대화
 			// 대화 메세지는 닉네임 : 메세지 형식으로 출력
 			appendMessage(data.nickname + " : " + data.message);
-			
-		}
+		
+		} else if(data.type == "START") { // 채팅방 열기(생성)
+			// createRoom() 함수 호출
+			// => 파라미터 : 룸 아이디, 상대방 아이디
+			createRoom(data.room_id, data.receiver_id);
+		
+		} else if(data.type =="LIST_ADD") {
+			// 기존 채팅방 목록에 새 채팅방 추가
+			// => 룸ID, 상대방ID 전달
+			appendChatRoomToRoomList(data.room_id, data.receiver_id);
+		} 
+		
+		
 	}
 	
 	// =========================================================	
+	// 채팅방 생성
+	function createRoom(room_id, receiver_id) {
+		let room = "<div class='chatRoom " + room_id + "'>"
+					+ "		<div class='chatMessageArea'></div>"
+					+ "			<div class='commandArea'></div>"
+					+ "				<input type='hidden' class='room_id' value='" + room_id + "'>"
+					+ "				<input type='hidden' class='receiver_id' value='" + receiver_id + "'>"
+					+ "				<input type='text' class='chatMsg' onkeypress='checkEnter(this)'>"
+					+ "				<input type='button' class='btnSend' value='전송' onclick='sendMessage(this)'>"
+					+ "				<input type='button' class='btnQuitRoom' value='나가기' onclick='quitRoom(this)>"
+					+ "			</div>"
+					+ "</div>";
+		
+		$("#chatRoomArea").append(room);
+	}
+	// =========================================================	
+	// 채팅방 목록에 새 채팅방 추가
+	function appendChatRoomToRoomList(room_id, receiver_id) {
+		let title = receiver_id + "님과의 채팅방";
+		// 채팅방 목록 1개 정보에 chatRoomList 와 room_id 값을 class 선택자로 추가
+		let room = "<div class='chatRoomList " + room_id + "'>"
+					+ "		<div class='chatRoomTitle'>"+ title + "</div>"
+					+ "</div>";
+		$("#chatRoomListArea").append(room);
+	}
+	
+	// =========================================================	
+	// 웹소켓 연결 해제
+	function disconnect() {
+		// Websocket 객체의 close() 메서드 호출하여 웹소켓 연결 종료
+		ws.close();
+	}
+	
 	// 웹소켓 연결 해제 시 close 이벤트에 대한 처리 메서드
 	function onClose() {
-// 		appendMessage(">>> onClose <<<");
-		appendMessage(">>> 채팅을 종료합니다. <<<");
 		
-		// 웹소켓 연결해제 시 입장, 나가기 버튼 활성화 상태 전환
-		$("#btnJoin").prop("disabled", false);
-		$("#btnQuit").prop("disabled", true);
 	}
 	
 	// 웹소켓 연결 실패 등의 사유로 오류 발생 시 error 이벤트에 대한 처리
 	// => 에러 정보 객체가 event 파라미터로 전달됨
 	function onError(event) {
-// 		appendMessage(">>> onError <<<");
-		appendMessage(">>> 시스템 오류 발생 <<<");
-		appendMessage(">>> 잠시 후 다시 접속하여 주시기 바랍니다. <<<");
-// 		console.log(event);
-		// 웹소켓 연결해제 시 입장, 나가기 버튼 활성화 상태 전환
-		$("#btnJoin").prop("disabled", false);
-		$("#btnQuit").prop("disabled", true);
+		console.log(">>> 시스템 오류 발생 <<<");
+		console.log(event);
 	}
 	
+	// ======================================================================
+	// 채팅방 엔터키 입력 판별
+	function checkEnter(target) {
+		let keyCode = event.keyCode;
+		if(keyCode == "13") {
+			sendMessage(target);
+		}
+	}
+	// ======================================================================
+	// 웹소켓 서버로 메세지 전송
+	function sendMessage(target) {
+		// 메세지가 입력된 채팅방 구분
+		// 전달받은 요소 객체(target)의 부모 탐색(<div class='commandArea'></div>)
+		let commandArea = $(target).parent();
+		
+		// 입력창의 채팅메세지 가져오기
+		// -> 부모에 해당하는 commandArea 의 자식들 중 클래스 선택자(".chatMsg") 요소 탐색
+		let msg =$(commandArea).find(".chatMsg").val();
+		console.log("msg : " + msg);
+		
+		// 해당 채팅방의 룸 아이디 가져오기
+		let room_id = $(commandArea).find(".room_id").val();
+		console.log("room_id : " + room_id);
+		
+		// 해당 채팅방의 상대방 아이디 가져오기
+		let receiver_id = $(commandArea).find(".receiver_id").val();
+		console.log("receiver_id : " + receiver_id);
+		
+		// 입력창의 채팅메세지가 널스트링이 아닐 경우에만 sendMessage() 호출
+		if(msg == "") {
+			alert("메세지 입력 필수!");
+			$(commandArea).find(".chatMsg").focus();
+			return;
+		}
+		
+		// 서버로 메세지 전송
+		ws.send(getJSONString("TALK", current_user_id, receiver_id, room_id, msg));
+		
+		// 입력창 초기화 후 포커스 요청
+		$(commandArea).find(".chatMsg").val("");
+		$(commandArea).find(".chatMsg").focus();
+	}
+		
 </script>
 </head>
 <body>	
@@ -272,16 +303,15 @@
 	<article>
 		<!-- 본문 표시 영역 -->
 		<h1>채팅 테스트</h1>
-		<input type="button" value="채팅방 입장" id="btnJoin">
+		<hr>
+		<!-- 상대방 아이디를 직접 입력하여 채팅방 생성 -->
+		<!-- 실제 환경에서는 게시물 내의 상대방 아이디를 클릭하여 채팅하기 등을 클릭했을 경우 -->
+		상대방 아이디 : <input type="text" id="receiver_id">
+		<input type="button" value="채팅 시작" id="btnJoin">
 		<input type="button" value="채팅방 나가기" id="btnQuit">
 		<hr>
-		<div id="chatArea">
-			<!-- 채팅 메세지 표시 영역 -->
-			<span id="chatMessageArea"></span>
-			<span id="chatUserListArea"></span>
-		</div>
-		<input type="text" id="chatMsg">
-		<input type="button" value="전송" id="btnSend">
+		<div id="chatRoomArea"><%-- 채팅방 추가될 위치 --%></div>
+		<div id="chatRoomListArea"><%-- 현재 사용자의 채팅방 목록 추가될 위치 --%></div>
 	</article>
 	<footer>
 		<%-- 회사소개 표시 영역(bottom.jsp 페이지 삽입) --%>
