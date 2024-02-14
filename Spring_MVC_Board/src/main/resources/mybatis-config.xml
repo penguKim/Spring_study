@@ -9,5 +9,7 @@
 		<typeAlias type="com.itwillbs.mvc_board.vo.MemberVO" alias="member"/>
 		<typeAlias type="com.itwillbs.mvc_board.vo.BoardVO" alias="board"/>
 		<typeAlias type="com.itwillbs.mvc_board.vo.MailAuthInfoVO" alias="mailAuthInfo"/>
+		<typeAlias type="com.itwillbs.mvc_board.vo.ChatRoomVO" alias="chatRoom"/>
+		<typeAlias type="com.itwillbs.mvc_board.vo.ChatMessage2" alias="chatMessage"/>
 	</typeAliases>
 </configuration>

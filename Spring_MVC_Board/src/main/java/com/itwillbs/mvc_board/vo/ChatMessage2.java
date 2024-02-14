@@ -29,5 +29,6 @@ public class ChatMessage2 {
 	public static final String TYPE_LIST = "LIST"; // 채팅방 목록 표시
 	public static final String TYPE_LIST_ADD = "LIST_ADD"; // 채팅방 목록 추가
 	public static final String TYPE_REMOVE = "REMOVE"; // 채팅방 제거
+	public static final String TYPE_MESSAGE_LIST = "MESSAGE_LIST"; // 채팅방 이전 채팅 내용 표시
 	
 }
